@@ -212,18 +212,21 @@ class StopwatchViewModel(
         ensureTickerRunningIfNeeded()
     }
 
-    fun copyTimeToClipboard(context: Context = appContext ?: return) {
+    fun copyTimeToClipboard(context: Context? = null) {
+        val targetContext = context ?: appContext ?: return
         val text = engine.formatTimeFull(engine.getElapsedTimeMs())
-        copyToClipboard(context, "Stopwatch Time", text)
+        copyToClipboard(targetContext, "Stopwatch Time", text)
     }
 
-    fun copyLapsToClipboard(context: Context = appContext ?: return) {
+    fun copyLapsToClipboard(context: Context? = null) {
+        val targetContext = context ?: appContext ?: return
         val text = engine.formatLapsForClipboard()
-        copyToClipboard(context, "Stopwatch Laps", text)
+        copyToClipboard(targetContext, "Stopwatch Laps", text)
     }
 
-    fun copyTextToClipboard(label: String, text: String, context: Context = appContext ?: return) {
-        copyToClipboard(context, label, text)
+    fun copyTextToClipboard(label: String, text: String, context: Context? = null) {
+        val targetContext = context ?: appContext ?: return
+        copyToClipboard(targetContext, label, text)
     }
 
     private fun copyToClipboard(context: Context, label: String, text: String) {
