@@ -1,0 +1,23 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Outer Glow Circle -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#EF4444"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M 54, 24 A 30,30 0 1,0 84, 54" />
+    
+    <!-- Top stem / knob -->
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M 51, 16 H 57 V 22 H 51 Z" />
+    
+    <!-- Center lightning / spark (desk assistant) -->
+    <path
+        android:fillColor="#06B6D4"
+        android:pathData="M 55,36 L 43,54 L 52,54 L 49,72 L 65,50 L 56,50 Z" />
+</vector>
