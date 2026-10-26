@@ -170,7 +170,7 @@ data class ClockUiState(
     val secondsDisplay: ClockSecondsDisplay = ClockSecondsDisplay.SMALL,
     val showDate: Boolean = true,
     val blinkingColon: Boolean = true,
-    val isAutoRotate: Boolean = false,
+    val isAutoRotate: Boolean = true,
     val rotationAngle: ClockRotationAngle = ClockRotationAngle.ROTATION_0,
     val theme: ClockTheme = ClockTheme.AMBER_NIGHT,
     val fontFamily: ClockFontFamily = ClockFontFamily.MONOSPACE,
