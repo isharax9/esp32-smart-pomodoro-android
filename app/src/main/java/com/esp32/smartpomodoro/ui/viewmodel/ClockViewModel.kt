@@ -152,6 +152,11 @@ class ClockViewModel(
         syncSnapshot()
     }
 
+    fun cycleFontSizeScale() {
+        engine.cycleFontSizeScale()
+        syncSnapshot()
+    }
+
     fun cycleSecondsDisplay() {
         engine.cycleSecondsDisplay()
         syncSnapshot()

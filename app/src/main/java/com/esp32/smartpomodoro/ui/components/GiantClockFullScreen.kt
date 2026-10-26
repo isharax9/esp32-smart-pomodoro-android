@@ -42,6 +42,7 @@ fun GiantClockFullScreen(
     onSwitchToPomodoro: (() -> Unit)? = null,
     onCycleTheme: () -> Unit,
     onCycleFontFamily: () -> Unit = {},
+    onCycleFontSize: () -> Unit = {},
     onToggleTimeFormat: () -> Unit,
     onCycleSeconds: () -> Unit,
     onToggleNightDimming: () -> Unit,
@@ -92,20 +93,38 @@ fun GiantClockFullScreen(
         val contentHeight = if (isLandscape) screenW else screenH
 
         // Responsive auto-scaling typography calculation (constrained by width and height to prevent clipping)
-        val digitScale = when {
-            uiState.secondsDisplay == ClockSecondsDisplay.BIG -> 0.14f
-            else -> 0.22f
+        val totalSlotUnits = when (uiState.secondsDisplay) {
+            ClockSecondsDisplay.BIG -> if (snapshot.amPm.isNotEmpty()) 5.3f else 4.5f
+            ClockSecondsDisplay.SMALL -> if (snapshot.amPm.isNotEmpty()) 4.4f else 3.6f
+            ClockSecondsDisplay.NONE -> if (snapshot.amPm.isNotEmpty()) 3.7f else 2.9f
         }
-        val maxFontFromWidth = contentWidth.value * digitScale
-        val maxFontFromHeight = contentHeight.value * 0.52f
-        val baseFontSize = minOf(maxFontFromWidth, maxFontFromHeight).coerceIn(36f, 220f)
-        val computedFontSize = (baseFontSize * uiState.fontSizeScale).coerceIn(24f, 240f).sp
-        val smallSecFontSize = (computedFontSize.value * 0.42f).coerceIn(16f, 96f).sp
+        val safeContentW = (contentWidth.value * 0.94f).coerceAtLeast(100f)
+        val maxFontFromWidth = safeContentW / totalSlotUnits
+        val maxFontFromHeight = contentHeight.value * (if (uiState.showDate) 0.50f else 0.65f)
+        val baseFontSize = minOf(maxFontFromWidth, maxFontFromHeight).coerceIn(30f, 220f)
+        val computedFontSize = (baseFontSize * uiState.fontSizeScale)
+            .coerceIn(24f, (safeContentW / totalSlotUnits * 1.25f)).sp
+
+        val smallSecFontSize = (computedFontSize.value * 0.42f).coerceIn(14f, 96f).sp
         val amPmFontSize = (computedFontSize.value * 0.25f).coerceIn(10f, 44f).sp
-        val dateFontSize = (minOf(contentWidth.value * 0.045f, contentHeight.value * 0.08f) * uiState.fontSizeScale).coerceIn(10f, 36f).sp
+        val dateFontSize = (minOf(contentWidth.value * 0.045f, contentHeight.value * 0.08f) * uiState.fontSizeScale.coerceIn(0.85f, 1.25f)).coerceIn(10f, 36f).sp
 
         val clockFont = uiState.fontFamily.toComposeFontFamily()
         val clockLetterSpacing = if (uiState.fontFamily == ClockFontFamily.MONOSPACE) (-2).sp else 0.sp
+
+        // Fixed slot dimensions guaranteeing zero shaking/jitter when seconds tick
+        val digitSlotWidth = (computedFontSize.value * 1.25f).dp
+        val colonSlotWidth = (computedFontSize.value * 0.32f).dp
+        val smallSecSlotWidth = (smallSecFontSize.value * 1.55f).dp
+        val amPmSlotWidth = (amPmFontSize.value * 2.8f).dp
+
+        val digitTextStyle = MaterialTheme.typography.displayLarge.copy(
+            fontWeight = FontWeight.Black,
+            fontSize = computedFontSize,
+            fontFamily = clockFont,
+            letterSpacing = clockLetterSpacing,
+            fontFeatureSettings = "tnum"
+        )
 
         // Central Giant Digits with Rotation
         Box(
@@ -122,109 +141,129 @@ fun GiantClockFullScreen(
                         rotationZ = uiState.rotationAngle.degrees.toFloat()
                     }
             ) {
-                // Digits Row
+                // Digits Row (with fixed-width non-shaking slots)
                 Row(
                     verticalAlignment = Alignment.Bottom,
                     horizontalArrangement = Arrangement.Center
                 ) {
-                    // Hours
-                    Text(
-                        text = snapshot.hours,
-                        style = MaterialTheme.typography.displayLarge.copy(
-                            fontWeight = FontWeight.Black,
-                            fontSize = computedFontSize,
-                            fontFamily = clockFont,
-                            letterSpacing = clockLetterSpacing
-                        ),
-                        color = uiState.effectiveColor
-                    )
+                    // Hours Slot
+                    Box(
+                        modifier = Modifier.width(digitSlotWidth),
+                        contentAlignment = Alignment.CenterEnd
+                    ) {
+                        Text(
+                            text = snapshot.hours,
+                            style = digitTextStyle,
+                            color = uiState.effectiveColor,
+                            maxLines = 1
+                        )
+                    }
 
-                    // Blinking Colon
-                    Text(
-                        text = ":",
-                        style = MaterialTheme.typography.displayLarge.copy(
-                            fontWeight = FontWeight.Black,
-                            fontSize = computedFontSize,
-                            fontFamily = clockFont
-                        ),
-                        color = if (snapshot.colonVisible) uiState.effectiveColor else Color.Transparent,
-                        modifier = Modifier.padding(horizontal = (computedFontSize.value * 0.02f).dp)
-                    )
+                    // Blinking Colon Slot
+                    Box(
+                        modifier = Modifier.width(colonSlotWidth),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = ":",
+                            style = digitTextStyle,
+                            color = if (snapshot.colonVisible) uiState.effectiveColor else Color.Transparent,
+                            maxLines = 1
+                        )
+                    }
 
-                    // Minutes
-                    Text(
-                        text = snapshot.minutes,
-                        style = MaterialTheme.typography.displayLarge.copy(
-                            fontWeight = FontWeight.Black,
-                            fontSize = computedFontSize,
-                            fontFamily = clockFont,
-                            letterSpacing = clockLetterSpacing
-                        ),
-                        color = uiState.effectiveColor
-                    )
+                    // Minutes Slot
+                    Box(
+                        modifier = Modifier.width(digitSlotWidth),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        Text(
+                            text = snapshot.minutes,
+                            style = digitTextStyle,
+                            color = uiState.effectiveColor,
+                            maxLines = 1
+                        )
+                    }
 
-                    // Seconds Display
+                    // Seconds Slot
                     when (uiState.secondsDisplay) {
                         ClockSecondsDisplay.BIG -> {
-                            Text(
-                                text = ":",
-                                style = MaterialTheme.typography.displayLarge.copy(
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = computedFontSize,
-                                    fontFamily = clockFont
-                                ),
-                                color = if (snapshot.colonVisible) uiState.effectiveColor else Color.Transparent,
-                                modifier = Modifier.padding(horizontal = (computedFontSize.value * 0.02f).dp)
-                            )
-                            Text(
-                                text = snapshot.seconds,
-                                style = MaterialTheme.typography.displayLarge.copy(
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = computedFontSize,
-                                    fontFamily = clockFont
-                                ),
-                                color = uiState.effectiveSecondaryColor
-                            )
+                            Box(
+                                modifier = Modifier.width(colonSlotWidth),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = ":",
+                                    style = digitTextStyle,
+                                    color = if (snapshot.colonVisible) uiState.effectiveColor else Color.Transparent,
+                                    maxLines = 1
+                                )
+                            }
+                            Box(
+                                modifier = Modifier.width(digitSlotWidth),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                Text(
+                                    text = snapshot.seconds,
+                                    style = digitTextStyle,
+                                    color = uiState.effectiveSecondaryColor,
+                                    maxLines = 1
+                                )
+                            }
                         }
                         ClockSecondsDisplay.SMALL -> {
-                            Text(
-                                text = snapshot.seconds,
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = smallSecFontSize,
-                                    fontFamily = clockFont
-                                ),
-                                color = uiState.effectiveSecondaryColor,
-                                modifier = Modifier.padding(
-                                    bottom = (computedFontSize.value * 0.12f).dp,
-                                    start = 6.dp
+                            Box(
+                                modifier = Modifier
+                                    .width(smallSecSlotWidth)
+                                    .padding(
+                                        bottom = (computedFontSize.value * 0.12f).dp,
+                                        start = 6.dp
+                                    ),
+                                contentAlignment = Alignment.BottomStart
+                            ) {
+                                Text(
+                                    text = snapshot.seconds,
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = smallSecFontSize,
+                                        fontFamily = clockFont,
+                                        fontFeatureSettings = "tnum"
+                                    ),
+                                    color = uiState.effectiveSecondaryColor,
+                                    maxLines = 1
                                 )
-                            )
+                            }
                         }
                         ClockSecondsDisplay.NONE -> {}
                     }
 
-                    // AM/PM Indicator
+                    // AM/PM Indicator Slot
                     if (snapshot.amPm.isNotEmpty()) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = uiState.effectiveColor.copy(alpha = 0.18f),
+                        Box(
                             modifier = Modifier
+                                .width(amPmSlotWidth)
                                 .padding(
                                     bottom = (computedFontSize.value * 0.14f).dp,
                                     start = 8.dp
-                                )
-                        ) {
-                            Text(
-                                text = snapshot.amPm,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = amPmFontSize,
-                                    fontFamily = clockFont
                                 ),
-                                color = uiState.effectiveColor,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
+                            contentAlignment = Alignment.BottomStart
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = uiState.effectiveColor.copy(alpha = 0.18f)
+                            ) {
+                                Text(
+                                    text = snapshot.amPm,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = amPmFontSize,
+                                        fontFamily = clockFont
+                                    ),
+                                    color = uiState.effectiveColor,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    maxLines = 1
+                                )
+                            }
                         }
                     }
                 }
@@ -431,6 +470,27 @@ fun GiantClockFullScreen(
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
+                        }
+
+                        // Quick Size Scale Cycle
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(SurfaceDark)
+                                .border(1.dp, SurfaceCardBorder, CircleShape)
+                                .clickable {
+                                    userInteractionTimestamp = System.currentTimeMillis()
+                                    onCycleFontSize()
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.FormatSize,
+                                contentDescription = "Size: ${(uiState.fontSizeScale * 100).toInt()}%",
+                                tint = uiState.theme.primaryColor,
+                                modifier = Modifier.size(15.dp)
+                            )
                         }
 
                         // Quick Font Family Cycle

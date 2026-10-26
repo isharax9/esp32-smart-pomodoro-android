@@ -255,29 +255,41 @@ class ClockEngineTest {
     fun testFontSizeScaleFactorClamping() {
         assertEquals(1.0f, engine.fontSizeScale, 0.001f)
 
-        // Valid range is 0.70f to 1.40f
+        // Valid range is 0.60f to 1.60f
         assertEquals(0.85f, engine.setFontSizeScaleFactor(0.85f), 0.001f)
         assertEquals(0.85f, engine.fontSizeScale, 0.001f)
 
-        // Below minimum clamps to 0.70f
-        assertEquals(0.70f, engine.setFontSizeScaleFactor(0.4f), 0.001f)
-        assertEquals(0.70f, engine.fontSizeScale, 0.001f)
+        // Below minimum clamps to 0.60f
+        assertEquals(0.60f, engine.setFontSizeScaleFactor(0.4f), 0.001f)
+        assertEquals(0.60f, engine.fontSizeScale, 0.001f)
 
-        // Above maximum clamps to 1.40f
-        assertEquals(1.40f, engine.setFontSizeScaleFactor(2.5f), 0.001f)
-        assertEquals(1.40f, engine.fontSizeScale, 0.001f)
+        // Above maximum clamps to 1.60f
+        assertEquals(1.60f, engine.setFontSizeScaleFactor(2.5f), 0.001f)
+        assertEquals(1.60f, engine.fontSizeScale, 0.001f)
     }
 
     @Test
     fun testFontSizeScalePresets() {
+        assertEquals(0.70f, ClockFontSizeScale.TINY.scaleFactor, 0.001f)
         assertEquals(0.85f, ClockFontSizeScale.COMPACT.scaleFactor, 0.001f)
         assertEquals(1.0f, ClockFontSizeScale.STANDARD.scaleFactor, 0.001f)
-        assertEquals(1.15f, ClockFontSizeScale.LARGE.scaleFactor, 0.001f)
-        assertEquals(1.30f, ClockFontSizeScale.GIANT.scaleFactor, 0.001f)
+        assertEquals(1.18f, ClockFontSizeScale.LARGE.scaleFactor, 0.001f)
+        assertEquals(1.36f, ClockFontSizeScale.GIANT.scaleFactor, 0.001f)
 
+        assertEquals(ClockFontSizeScale.COMPACT, ClockFontSizeScale.TINY.next())
         assertEquals(ClockFontSizeScale.STANDARD, ClockFontSizeScale.COMPACT.next())
         assertEquals(ClockFontSizeScale.LARGE, ClockFontSizeScale.STANDARD.next())
         assertEquals(ClockFontSizeScale.GIANT, ClockFontSizeScale.LARGE.next())
-        assertEquals(ClockFontSizeScale.COMPACT, ClockFontSizeScale.GIANT.next())
+        assertEquals(ClockFontSizeScale.TINY, ClockFontSizeScale.GIANT.next())
+    }
+
+    @Test
+    fun testCycleFontSizeScale() {
+        engine.fontSizeScale = 1.0f
+        assertEquals(1.18f, engine.cycleFontSizeScale(), 0.001f)
+        assertEquals(1.36f, engine.cycleFontSizeScale(), 0.001f)
+        assertEquals(0.70f, engine.cycleFontSizeScale(), 0.001f)
+        assertEquals(0.85f, engine.cycleFontSizeScale(), 0.001f)
+        assertEquals(1.0f, engine.cycleFontSizeScale(), 0.001f)
     }
 }

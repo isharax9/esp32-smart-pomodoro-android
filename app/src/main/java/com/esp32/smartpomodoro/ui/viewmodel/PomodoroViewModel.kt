@@ -8,6 +8,7 @@ import com.esp32.smartpomodoro.data.model.PomodoroStatus
 import com.esp32.smartpomodoro.data.model.StripTarget
 import com.esp32.smartpomodoro.data.repository.Esp32Repository
 import com.esp32.smartpomodoro.notification.NotificationHelper
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,8 +32,13 @@ data class PomodoroUiState(
 
 class PomodoroViewModel(
     private val repository: Esp32Repository,
-    private val notificationHelper: NotificationHelper
+    private val notificationHelper: NotificationHelper? = null,
+    private val externalScope: CoroutineScope? = null,
+    autoStartPolling: Boolean = true
 ) : ViewModel() {
+
+    private val scope: CoroutineScope
+        get() = externalScope ?: viewModelScope
 
     private val _uiState = MutableStateFlow(PomodoroUiState())
     val uiState: StateFlow<PomodoroUiState> = _uiState.asStateFlow()
@@ -40,13 +46,82 @@ class PomodoroViewModel(
     private var pollingJob: Job? = null
     private var lastObservedState: PomodoroState = PomodoroState.IDLE
 
+    // Standalone Pomodoro Engine state (operates independently of ESP32 and sensors)
+    private var localTimerActive: Boolean = false
+    private var localPhase: PomodoroState = PomodoroState.IDLE
+    private var localRemainingSec: Long = 1500L
+    private var localTotalSec: Long = 1500L
+    private var localIsPaused: Boolean = false
+    private var localCyclesCompleted: Long = 0L
+    private var pomodoroTimerJob: Job? = null
+
     init {
-        startPolling()
+        if (autoStartPolling) {
+            startPolling()
+        }
+    }
+
+    private fun updateLocalStatus() {
+        _uiState.update { current ->
+            current.copy(
+                status = current.status.copy(
+                    state = localPhase.name,
+                    remainingSec = localRemainingSec,
+                    totalSec = localTotalSec,
+                    isPaused = localIsPaused,
+                    cyclesCompleted = localCyclesCompleted,
+                    isUserPresent = true
+                )
+            )
+        }
+    }
+
+    private fun startLocalCountdown() {
+        pomodoroTimerJob?.cancel()
+        pomodoroTimerJob = scope.launch {
+            while (isActive && localTimerActive) {
+                delay(1000L)
+                if (!localIsPaused && localPhase != PomodoroState.IDLE) {
+                    if (localRemainingSec > 1) {
+                        localRemainingSec--
+                        updateLocalStatus()
+                    } else {
+                        // Phase complete
+                        if (localPhase == PomodoroState.WORK) {
+                            localCyclesCompleted++
+                            localPhase = PomodoroState.BREAK
+                            localTotalSec = 300L
+                            localRemainingSec = 300L
+                            updateLocalStatus()
+                            notificationHelper?.sendPhaseAlert(
+                                "Focus Session Complete! ☕",
+                                "Great job! Time for a refreshing break."
+                            )
+                            launch {
+                                try { repository.sendPomodoroAction("start") } catch (_: Exception) {}
+                            }
+                        } else if (localPhase == PomodoroState.BREAK) {
+                            localPhase = PomodoroState.WORK
+                            localTotalSec = 1500L
+                            localRemainingSec = 1500L
+                            updateLocalStatus()
+                            notificationHelper?.sendPhaseAlert(
+                                "Break Finished! 🎯",
+                                "Ready to dive back in? Focus sprint activated."
+                            )
+                            launch {
+                                try { repository.sendPomodoroAction("start") } catch (_: Exception) {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     fun startPolling() {
         pollingJob?.cancel()
-        pollingJob = viewModelScope.launch {
+        pollingJob = scope.launch {
             while (isActive) {
                 fetchStatus()
                 val delayMs = if (_uiState.value.isConnected) 1200L else 3000L
@@ -64,21 +139,42 @@ class PomodoroViewModel(
 
                 // Detect state transitions to trigger sound & vibration notifications
                 if (prev == PomodoroState.WORK && current == PomodoroState.BREAK) {
-                    notificationHelper.sendPhaseAlert(
+                    notificationHelper?.sendPhaseAlert(
                         "Focus Session Complete! ☕",
                         "Great job! Time for a refreshing break. Desk lights set to recovery green."
                     )
                 } else if (prev == PomodoroState.BREAK && current == PomodoroState.WORK) {
-                    notificationHelper.sendPhaseAlert(
+                    notificationHelper?.sendPhaseAlert(
                         "Break Finished! 🎯",
                         "Ready to dive back in? Focus mode activated (lights red)."
                     )
                 }
                 lastObservedState = current
 
+                val effectiveStatus = if (localTimerActive) {
+                    status.copy(
+                        state = localPhase.name,
+                        remainingSec = localRemainingSec,
+                        totalSec = localTotalSec,
+                        isPaused = localIsPaused,
+                        cyclesCompleted = localCyclesCompleted
+                    )
+                } else {
+                    if (status.parsedState != PomodoroState.IDLE) {
+                        localPhase = status.parsedState
+                        localRemainingSec = status.remainingSec
+                        localTotalSec = status.totalSec
+                        localIsPaused = status.isPaused
+                        localCyclesCompleted = status.cyclesCompleted
+                        localTimerActive = true
+                        startLocalCountdown()
+                    }
+                    status
+                }
+
                 _uiState.update {
                     it.copy(
-                        status = status,
+                        status = effectiveStatus,
                         isConnected = true,
                         isConnecting = false,
                         errorMessage = null,
@@ -99,14 +195,70 @@ class PomodoroViewModel(
     }
 
     fun triggerPomodoroAction(action: String) {
-        viewModelScope.launch {
-            repository.sendPomodoroAction(action)
+        when (action.lowercase()) {
+            "start" -> {
+                localTimerActive = true
+                localPhase = PomodoroState.WORK
+                localTotalSec = 1500L
+                localRemainingSec = 1500L
+                localIsPaused = false
+                updateLocalStatus()
+                startLocalCountdown()
+            }
+            "pause" -> {
+                localIsPaused = true
+                updateLocalStatus()
+            }
+            "resume" -> {
+                localIsPaused = false
+                if (localPhase == PomodoroState.IDLE) {
+                    localPhase = PomodoroState.WORK
+                    localTotalSec = 1500L
+                    localRemainingSec = 1500L
+                }
+                localTimerActive = true
+                updateLocalStatus()
+                startLocalCountdown()
+            }
+            "skip" -> {
+                if (localPhase == PomodoroState.WORK) {
+                    localCyclesCompleted++
+                    localPhase = PomodoroState.BREAK
+                    localTotalSec = 300L
+                    localRemainingSec = 300L
+                } else {
+                    localPhase = PomodoroState.WORK
+                    localTotalSec = 1500L
+                    localRemainingSec = 1500L
+                }
+                localIsPaused = false
+                localTimerActive = true
+                updateLocalStatus()
+                startLocalCountdown()
+            }
+            "reset" -> {
+                localTimerActive = false
+                pomodoroTimerJob?.cancel()
+                pomodoroTimerJob = null
+                localPhase = PomodoroState.IDLE
+                localTotalSec = 1500L
+                localRemainingSec = 1500L
+                localIsPaused = false
+                updateLocalStatus()
+            }
+        }
+
+        // Asynchronously mirror action to ESP32 without blocking local execution
+        scope.launch {
+            try {
+                repository.sendPomodoroAction(action)
+            } catch (_: Exception) {}
             fetchStatus()
         }
     }
 
     fun sendColorCommand(cmdVal: String) {
-        viewModelScope.launch {
+        scope.launch {
             repository.sendColorCommand(cmdVal, _uiState.value.selectedStrip)
             fetchStatus()
         }
@@ -114,7 +266,7 @@ class PomodoroViewModel(
 
     fun setBrightness(level: Int) {
         _uiState.update { it.copy(localBrightness = level.toFloat()) }
-        viewModelScope.launch {
+        scope.launch {
             repository.setBrightness(level)
             fetchStatus()
         }
@@ -122,7 +274,7 @@ class PomodoroViewModel(
 
     fun toggleAutoPause() {
         val currentSetting = _uiState.value.status.autoPauseEnabled
-        viewModelScope.launch {
+        scope.launch {
             repository.setAutoPause(!currentSetting)
             fetchStatus()
         }
@@ -142,7 +294,7 @@ class PomodoroViewModel(
                 isConnecting = true
             )
         }
-        viewModelScope.launch {
+        scope.launch {
             fetchStatus()
         }
     }
@@ -156,7 +308,7 @@ class PomodoroViewModel(
     }
 
     fun calibrateStrip(strip: String, action: String) {
-        viewModelScope.launch {
+        scope.launch {
             repository.calibratePins(strip, action)
             fetchStatus()
         }
@@ -169,6 +321,7 @@ class PomodoroViewModel(
     override fun onCleared() {
         super.onCleared()
         pollingJob?.cancel()
+        pomodoroTimerJob?.cancel()
     }
 }
 
