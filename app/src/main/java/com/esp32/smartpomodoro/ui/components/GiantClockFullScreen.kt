@@ -41,6 +41,7 @@ fun GiantClockFullScreen(
     onSwitchToStopwatch: (() -> Unit)? = null,
     onSwitchToPomodoro: (() -> Unit)? = null,
     onCycleTheme: () -> Unit,
+    onCycleFontFamily: () -> Unit = {},
     onToggleTimeFormat: () -> Unit,
     onCycleSeconds: () -> Unit,
     onToggleNightDimming: () -> Unit,
@@ -97,10 +98,14 @@ fun GiantClockFullScreen(
         }
         val maxFontFromWidth = contentWidth.value * digitScale
         val maxFontFromHeight = contentHeight.value * 0.52f
-        val computedFontSize = minOf(maxFontFromWidth, maxFontFromHeight).coerceIn(36f, 220f).sp
-        val smallSecFontSize = (computedFontSize.value * 0.42f).coerceIn(18f, 90f).sp
-        val amPmFontSize = (computedFontSize.value * 0.25f).coerceIn(12f, 40f).sp
-        val dateFontSize = minOf(contentWidth.value * 0.045f, contentHeight.value * 0.08f).coerceIn(12f, 32f).sp
+        val baseFontSize = minOf(maxFontFromWidth, maxFontFromHeight).coerceIn(36f, 220f)
+        val computedFontSize = (baseFontSize * uiState.fontSizeScale).coerceIn(24f, 240f).sp
+        val smallSecFontSize = (computedFontSize.value * 0.42f).coerceIn(16f, 96f).sp
+        val amPmFontSize = (computedFontSize.value * 0.25f).coerceIn(10f, 44f).sp
+        val dateFontSize = (minOf(contentWidth.value * 0.045f, contentHeight.value * 0.08f) * uiState.fontSizeScale).coerceIn(10f, 36f).sp
+
+        val clockFont = uiState.fontFamily.toComposeFontFamily()
+        val clockLetterSpacing = if (uiState.fontFamily == ClockFontFamily.MONOSPACE) (-2).sp else 0.sp
 
         // Central Giant Digits with Rotation
         Box(
@@ -128,8 +133,8 @@ fun GiantClockFullScreen(
                         style = MaterialTheme.typography.displayLarge.copy(
                             fontWeight = FontWeight.Black,
                             fontSize = computedFontSize,
-                            fontFamily = FontFamily.Monospace,
-                            letterSpacing = (-2).sp
+                            fontFamily = clockFont,
+                            letterSpacing = clockLetterSpacing
                         ),
                         color = uiState.effectiveColor
                     )
@@ -140,7 +145,7 @@ fun GiantClockFullScreen(
                         style = MaterialTheme.typography.displayLarge.copy(
                             fontWeight = FontWeight.Black,
                             fontSize = computedFontSize,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = clockFont
                         ),
                         color = if (snapshot.colonVisible) uiState.effectiveColor else Color.Transparent,
                         modifier = Modifier.padding(horizontal = (computedFontSize.value * 0.02f).dp)
@@ -152,8 +157,8 @@ fun GiantClockFullScreen(
                         style = MaterialTheme.typography.displayLarge.copy(
                             fontWeight = FontWeight.Black,
                             fontSize = computedFontSize,
-                            fontFamily = FontFamily.Monospace,
-                            letterSpacing = (-2).sp
+                            fontFamily = clockFont,
+                            letterSpacing = clockLetterSpacing
                         ),
                         color = uiState.effectiveColor
                     )
@@ -166,7 +171,7 @@ fun GiantClockFullScreen(
                                 style = MaterialTheme.typography.displayLarge.copy(
                                     fontWeight = FontWeight.Black,
                                     fontSize = computedFontSize,
-                                    fontFamily = FontFamily.Monospace
+                                    fontFamily = clockFont
                                 ),
                                 color = if (snapshot.colonVisible) uiState.effectiveColor else Color.Transparent,
                                 modifier = Modifier.padding(horizontal = (computedFontSize.value * 0.02f).dp)
@@ -176,7 +181,7 @@ fun GiantClockFullScreen(
                                 style = MaterialTheme.typography.displayLarge.copy(
                                     fontWeight = FontWeight.Black,
                                     fontSize = computedFontSize,
-                                    fontFamily = FontFamily.Monospace
+                                    fontFamily = clockFont
                                 ),
                                 color = uiState.effectiveSecondaryColor
                             )
@@ -187,7 +192,7 @@ fun GiantClockFullScreen(
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = smallSecFontSize,
-                                    fontFamily = FontFamily.Monospace
+                                    fontFamily = clockFont
                                 ),
                                 color = uiState.effectiveSecondaryColor,
                                 modifier = Modifier.padding(
@@ -214,7 +219,8 @@ fun GiantClockFullScreen(
                                 text = snapshot.amPm,
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = amPmFontSize
+                                    fontSize = amPmFontSize,
+                                    fontFamily = clockFont
                                 ),
                                 color = uiState.effectiveColor,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -231,6 +237,7 @@ fun GiantClockFullScreen(
                         style = MaterialTheme.typography.headlineSmall.copy(
                             fontWeight = FontWeight.Medium,
                             fontSize = dateFontSize,
+                            fontFamily = clockFont,
                             letterSpacing = 0.5.sp
                         ),
                         color = uiState.effectiveSecondaryColor
@@ -424,6 +431,27 @@ fun GiantClockFullScreen(
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
+                        }
+
+                        // Quick Font Family Cycle
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(SurfaceDark)
+                                .border(1.dp, SurfaceCardBorder, CircleShape)
+                                .clickable {
+                                    userInteractionTimestamp = System.currentTimeMillis()
+                                    onCycleFontFamily()
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.TextFields,
+                                contentDescription = "Font: ${uiState.fontFamily.label}",
+                                tint = uiState.theme.primaryColor,
+                                modifier = Modifier.size(15.dp)
+                            )
                         }
 
                         // Quick Theme Cycle

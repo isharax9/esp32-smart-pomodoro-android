@@ -37,6 +37,8 @@ class ClockEngine(
     var isAutoRotate: Boolean = false
     var rotationAngle: ClockRotationAngle = ClockRotationAngle.ROTATION_0
     var theme: ClockTheme = ClockTheme.AMBER_NIGHT
+    var fontFamily: ClockFontFamily = ClockFontFamily.MONOSPACE
+    var fontSizeScale: Float = 1.0f
     var nightDimming: Boolean = false
     var brightnessFactor: Float = 1.0f
     var keepScreenOn: Boolean = true
@@ -150,5 +152,15 @@ class ClockEngine(
     fun toggleTimeFormat(): ClockTimeFormat {
         timeFormat = timeFormat.toggle()
         return timeFormat
+    }
+
+    fun cycleFontFamily(): ClockFontFamily {
+        fontFamily = fontFamily.next()
+        return fontFamily
+    }
+
+    fun setFontSizeScaleFactor(scale: Float): Float {
+        fontSizeScale = scale.coerceIn(0.70f, 1.40f)
+        return fontSizeScale
     }
 }

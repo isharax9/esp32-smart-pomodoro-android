@@ -241,4 +241,43 @@ class ClockEngineTest {
         engine.toggleOrientation()
         assertFalse(engine.isAutoRotate)
     }
+
+    @Test
+    fun testCycleFontFamily() {
+        assertEquals(ClockFontFamily.MONOSPACE, engine.fontFamily)
+        assertEquals(ClockFontFamily.SANS_SERIF, engine.cycleFontFamily())
+        assertEquals(ClockFontFamily.SERIF, engine.cycleFontFamily())
+        assertEquals(ClockFontFamily.CURSIVE, engine.cycleFontFamily())
+        assertEquals(ClockFontFamily.MONOSPACE, engine.cycleFontFamily())
+    }
+
+    @Test
+    fun testFontSizeScaleFactorClamping() {
+        assertEquals(1.0f, engine.fontSizeScale, 0.001f)
+
+        // Valid range is 0.70f to 1.40f
+        assertEquals(0.85f, engine.setFontSizeScaleFactor(0.85f), 0.001f)
+        assertEquals(0.85f, engine.fontSizeScale, 0.001f)
+
+        // Below minimum clamps to 0.70f
+        assertEquals(0.70f, engine.setFontSizeScaleFactor(0.4f), 0.001f)
+        assertEquals(0.70f, engine.fontSizeScale, 0.001f)
+
+        // Above maximum clamps to 1.40f
+        assertEquals(1.40f, engine.setFontSizeScaleFactor(2.5f), 0.001f)
+        assertEquals(1.40f, engine.fontSizeScale, 0.001f)
+    }
+
+    @Test
+    fun testFontSizeScalePresets() {
+        assertEquals(0.85f, ClockFontSizeScale.COMPACT.scaleFactor, 0.001f)
+        assertEquals(1.0f, ClockFontSizeScale.STANDARD.scaleFactor, 0.001f)
+        assertEquals(1.15f, ClockFontSizeScale.LARGE.scaleFactor, 0.001f)
+        assertEquals(1.30f, ClockFontSizeScale.GIANT.scaleFactor, 0.001f)
+
+        assertEquals(ClockFontSizeScale.STANDARD, ClockFontSizeScale.COMPACT.next())
+        assertEquals(ClockFontSizeScale.LARGE, ClockFontSizeScale.STANDARD.next())
+        assertEquals(ClockFontSizeScale.GIANT, ClockFontSizeScale.LARGE.next())
+        assertEquals(ClockFontSizeScale.COMPACT, ClockFontSizeScale.GIANT.next())
+    }
 }

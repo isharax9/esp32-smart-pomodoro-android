@@ -1,6 +1,7 @@
 package com.esp32.smartpomodoro.data.model
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 
 /**
  * Multi-orientation rotation angles for the Giant Clock.
@@ -107,6 +108,45 @@ enum class ClockTheme(
 }
 
 /**
+ * Typography options for giant digits and clock labels.
+ */
+enum class ClockFontFamily(val label: String) {
+    MONOSPACE("Monospace"),
+    SANS_SERIF("Sans-Serif"),
+    SERIF("Serif"),
+    CURSIVE("Cursive");
+
+    fun next(): ClockFontFamily {
+        val entries = entries
+        val nextIdx = (ordinal + 1) % entries.size
+        return entries[nextIdx]
+    }
+
+    fun toComposeFontFamily(): FontFamily = when (this) {
+        MONOSPACE -> FontFamily.Monospace
+        SANS_SERIF -> FontFamily.SansSerif
+        SERIF -> FontFamily.Serif
+        CURSIVE -> FontFamily.Cursive
+    }
+}
+
+/**
+ * Text and numbers size preset options for giant desk clock.
+ */
+enum class ClockFontSizeScale(val label: String, val scaleFactor: Float) {
+    COMPACT("Compact", 0.85f),
+    STANDARD("Standard", 1.0f),
+    LARGE("Large", 1.15f),
+    GIANT("Giant", 1.30f);
+
+    fun next(): ClockFontSizeScale {
+        val entries = entries
+        val nextIdx = (ordinal + 1) % entries.size
+        return entries[nextIdx]
+    }
+}
+
+/**
  * Formatted snapshot of current time for digital display.
  */
 data class ClockTimeSnapshot(
@@ -132,6 +172,8 @@ data class ClockUiState(
     val isAutoRotate: Boolean = false,
     val rotationAngle: ClockRotationAngle = ClockRotationAngle.ROTATION_0,
     val theme: ClockTheme = ClockTheme.AMBER_NIGHT,
+    val fontFamily: ClockFontFamily = ClockFontFamily.MONOSPACE,
+    val fontSizeScale: Float = 1.0f,
     val nightDimming: Boolean = false,
     val brightnessFactor: Float = 1.0f, // 0.1f to 1.0f
     val keepScreenOn: Boolean = true,

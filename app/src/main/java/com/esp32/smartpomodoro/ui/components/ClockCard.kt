@@ -34,6 +34,7 @@ fun ClockCard(
     onToggleOrientation: () -> Unit,
     onToggleAutoRotate: () -> Unit = {},
     onCycleTheme: () -> Unit,
+    onCycleFontFamily: () -> Unit = {},
     onToggleTimeFormat: () -> Unit,
     onCycleSeconds: () -> Unit,
     onToggleNightDimming: () -> Unit,
@@ -136,11 +137,29 @@ fun ClockCard(
                     }
                 }
 
-                // Action icons: Theme, Settings, Fullscreen
+                // Action icons: Font, Theme, Settings, Fullscreen
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Quick Font Family Cycle Button
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(SurfaceDark)
+                            .clickable { onCycleFontFamily() }
+                            .border(1.dp, SurfaceCardBorder, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.TextFields,
+                            contentDescription = "Font: ${uiState.fontFamily.label}",
+                            tint = uiState.theme.primaryColor,
+                            modifier = Modifier.size(15.dp)
+                        )
+                    }
+
                     // Quick Theme Swatch Button
                     Box(
                         modifier = Modifier
@@ -190,20 +209,25 @@ fun ClockCard(
             HorizontalDivider(color = SurfaceCardBorder)
 
             // 2. GIANT TIME READOUT CONTAINER (Interactive: tap to expand fullscreen)
-            val digitFontSize = when {
-                isLandscape && uiState.secondsDisplay == ClockSecondsDisplay.BIG -> 22.sp
-                isLandscape -> 30.sp
-                uiState.secondsDisplay == ClockSecondsDisplay.BIG -> 40.sp
-                else -> 52.sp
+            val scale = uiState.fontSizeScale
+            val baseDigitSize = when {
+                isLandscape && uiState.secondsDisplay == ClockSecondsDisplay.BIG -> 22f
+                isLandscape -> 30f
+                uiState.secondsDisplay == ClockSecondsDisplay.BIG -> 40f
+                else -> 52f
             }
-            val smallSecFontSize = if (isLandscape) 14.sp else 22.sp
-            val amPmFontSize = if (isLandscape) 9.sp else 11.sp
-            val dateFontSize = if (isLandscape) 10.sp else 12.sp
+            val digitFontSize = (baseDigitSize * scale).sp
+            val smallSecFontSize = ((if (isLandscape) 14f else 22f) * scale).sp
+            val amPmFontSize = ((if (isLandscape) 9f else 11f) * scale).sp
+            val dateFontSize = ((if (isLandscape) 10f else 12f) * scale).sp
+
+            val clockFont = uiState.fontFamily.toComposeFontFamily()
+            val clockLetterSpacing = if (uiState.fontFamily == ClockFontFamily.MONOSPACE) (-1).sp else 0.sp
 
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(if (isLandscape) 220.dp else 160.dp)
+                    .height(if (isLandscape) (200.dp + (30.dp * scale)) else (140.dp + (25.dp * scale)))
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color.Black.copy(alpha = 0.4f))
                     .clickable { onToggleFullScreen() }
@@ -235,8 +259,8 @@ fun ClockCard(
                             style = MaterialTheme.typography.displayLarge.copy(
                                 fontWeight = FontWeight.Black,
                                 fontSize = digitFontSize,
-                                fontFamily = FontFamily.Monospace,
-                                letterSpacing = (-1).sp
+                                fontFamily = clockFont,
+                                letterSpacing = clockLetterSpacing
                             ),
                             color = uiState.effectiveColor
                         )
@@ -247,7 +271,7 @@ fun ClockCard(
                             style = MaterialTheme.typography.displayLarge.copy(
                                 fontWeight = FontWeight.Black,
                                 fontSize = digitFontSize,
-                                fontFamily = FontFamily.Monospace
+                                fontFamily = clockFont
                             ),
                             color = if (snapshot.colonVisible) uiState.effectiveColor else Color.Transparent,
                             modifier = Modifier.padding(horizontal = 2.dp)
@@ -259,8 +283,8 @@ fun ClockCard(
                             style = MaterialTheme.typography.displayLarge.copy(
                                 fontWeight = FontWeight.Black,
                                 fontSize = digitFontSize,
-                                fontFamily = FontFamily.Monospace,
-                                letterSpacing = (-1).sp
+                                fontFamily = clockFont,
+                                letterSpacing = clockLetterSpacing
                             ),
                             color = uiState.effectiveColor
                         )
@@ -273,7 +297,7 @@ fun ClockCard(
                                     style = MaterialTheme.typography.displayLarge.copy(
                                         fontWeight = FontWeight.Black,
                                         fontSize = digitFontSize,
-                                        fontFamily = FontFamily.Monospace
+                                        fontFamily = clockFont
                                     ),
                                     color = if (snapshot.colonVisible) uiState.effectiveColor else Color.Transparent,
                                     modifier = Modifier.padding(horizontal = 2.dp)
@@ -283,7 +307,7 @@ fun ClockCard(
                                     style = MaterialTheme.typography.displayLarge.copy(
                                         fontWeight = FontWeight.Black,
                                         fontSize = digitFontSize,
-                                        fontFamily = FontFamily.Monospace
+                                        fontFamily = clockFont
                                     ),
                                     color = uiState.effectiveSecondaryColor
                                 )
@@ -294,7 +318,7 @@ fun ClockCard(
                                     style = MaterialTheme.typography.titleLarge.copy(
                                         fontWeight = FontWeight.Bold,
                                         fontSize = smallSecFontSize,
-                                        fontFamily = FontFamily.Monospace
+                                        fontFamily = clockFont
                                     ),
                                     color = uiState.effectiveSecondaryColor,
                                     modifier = Modifier.padding(bottom = if (isLandscape) 4.dp else 8.dp, start = 4.dp)
@@ -317,7 +341,8 @@ fun ClockCard(
                                     text = snapshot.amPm,
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = amPmFontSize
+                                        fontSize = amPmFontSize,
+                                        fontFamily = clockFont
                                     ),
                                     color = uiState.effectiveColor,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -333,7 +358,8 @@ fun ClockCard(
                             text = "${snapshot.dayOfWeek}, ${snapshot.dateFormatted}",
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontWeight = FontWeight.Medium,
-                                fontSize = dateFontSize
+                                fontSize = dateFontSize,
+                                fontFamily = clockFont
                             ),
                             color = uiState.effectiveSecondaryColor
                         )

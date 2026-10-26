@@ -37,6 +37,8 @@ class ClockViewModel(
             isAutoRotate = engine.isAutoRotate,
             rotationAngle = engine.rotationAngle,
             theme = engine.theme,
+            fontFamily = engine.fontFamily,
+            fontSizeScale = engine.fontSizeScale,
             nightDimming = engine.nightDimming,
             brightnessFactor = engine.brightnessFactor,
             keepScreenOn = engine.keepScreenOn,
@@ -77,6 +79,8 @@ class ClockViewModel(
                 isAutoRotate = engine.isAutoRotate,
                 rotationAngle = engine.rotationAngle,
                 theme = engine.theme,
+                fontFamily = engine.fontFamily,
+                fontSizeScale = engine.fontSizeScale,
                 nightDimming = engine.nightDimming,
                 brightnessFactor = engine.brightnessFactor,
                 keepScreenOn = engine.keepScreenOn,
@@ -125,6 +129,26 @@ class ClockViewModel(
 
     fun setTheme(theme: ClockTheme) {
         engine.theme = theme
+        syncSnapshot()
+    }
+
+    fun cycleFontFamily() {
+        engine.cycleFontFamily()
+        syncSnapshot()
+    }
+
+    fun setFontFamily(fontFamily: ClockFontFamily) {
+        engine.fontFamily = fontFamily
+        syncSnapshot()
+    }
+
+    fun setFontSizeScale(scale: Float) {
+        engine.setFontSizeScaleFactor(scale)
+        syncSnapshot()
+    }
+
+    fun setFontSizeScalePreset(preset: ClockFontSizeScale) {
+        engine.setFontSizeScaleFactor(preset.scaleFactor)
         syncSnapshot()
     }
 
