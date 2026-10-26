@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontFamily
@@ -58,113 +59,162 @@ fun ClockCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
+                .padding(18.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // 1. TOP CONTROLS: Rotation Angle Selector, Theme, and Fullscreen
+            // 1. STREAMLINED HEADER: Desk Clock title, live status, orientation pill & quick actions
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Multi-Orientation Angle Selector (Auto, 0°, 90°, 180°, 270°) and orientation toggles
+                // Title and format badge
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Auto-Rotate pill
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (uiState.isAutoRotate) uiState.theme.primaryColor else SurfaceDark,
+                    // Pulsing theme status dot
+                    Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { onToggleAutoRotate() }
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(uiState.theme.primaryColor)
+                    )
+                    Text(
+                        text = "DESK CLOCK",
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 1.5.sp
+                        ),
+                        color = TextPrimary
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = SurfaceDark
                     ) {
                         Text(
-                            text = "Auto",
+                            text = if (uiState.timeFormat == ClockTimeFormat.TWELVE_HOUR) "12H" else "24H",
                             style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = if (uiState.isAutoRotate) FontWeight.Bold else FontWeight.Normal
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp
                             ),
-                            color = if (uiState.isAutoRotate) BackgroundDark else TextSecondary,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 5.dp)
+                            color = uiState.theme.primaryColor,
+                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
                         )
                     }
+                }
 
-                    ClockRotationAngle.entries.forEach { angle ->
-                        val isSelected = !uiState.isAutoRotate && uiState.rotationAngle == angle
+                // Interactive Control Group (Orientation pill with menu, Rotate, Font, Size, Theme, Settings, Fullscreen)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    var showOrientationMenu by remember { mutableStateOf(false) }
+
+                    // Smart Orientation Pill (Tap opens quick angle & auto-rotate selector)
+                    Box {
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = if (isSelected) uiState.theme.primaryColor else SurfaceDark,
+                            color = if (uiState.isAutoRotate) uiState.theme.primaryColor.copy(alpha = 0.2f) else SurfaceDark,
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                if (uiState.isAutoRotate) uiState.theme.primaryColor else SurfaceCardBorder
+                            ),
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .clickable { onSelectRotation(angle) }
+                                .clickable { showOrientationMenu = true }
                         ) {
-                            Text(
-                                text = "${angle.degrees}°",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                ),
-                                color = if (isSelected) BackgroundDark else TextSecondary,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 5.dp)
+                            Row(
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (uiState.isAutoRotate) Icons.Default.AutoMode else Icons.AutoMirrored.Filled.RotateRight,
+                                    contentDescription = "Rotation",
+                                    tint = if (uiState.isAutoRotate) uiState.theme.primaryColor else TextSecondary,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Text(
+                                    text = if (uiState.isAutoRotate) "Auto" else "${uiState.rotationAngle.degrees}°",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp
+                                    ),
+                                    color = if (uiState.isAutoRotate) uiState.theme.primaryColor else TextSecondary
+                                )
+                            }
+                        }
+
+                        DropdownMenu(
+                            expanded = showOrientationMenu,
+                            onDismissRequest = { showOrientationMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Auto-Rotate (Sensor)") },
+                                onClick = {
+                                    onToggleAutoRotate()
+                                    showOrientationMenu = false
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.AutoMode, contentDescription = null, tint = uiState.theme.primaryColor)
+                                }
                             )
+                            DropdownMenuItem(
+                                text = { Text("Toggle Portrait / Landscape") },
+                                onClick = {
+                                    onToggleOrientation()
+                                    showOrientationMenu = false
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.ScreenRotation, contentDescription = null, tint = TextSecondary)
+                                }
+                            )
+                            HorizontalDivider()
+                            ClockRotationAngle.entries.forEach { angle ->
+                                val isSelected = !uiState.isAutoRotate && uiState.rotationAngle == angle
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = "${angle.degrees}°",
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (isSelected) uiState.theme.primaryColor else TextPrimary
+                                        )
+                                    },
+                                    onClick = {
+                                        onSelectRotation(angle)
+                                        showOrientationMenu = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.AutoMirrored.Filled.RotateRight,
+                                            contentDescription = null,
+                                            tint = if (isSelected) uiState.theme.primaryColor else TextSecondary
+                                        )
+                                    }
+                                )
+                            }
                         }
                     }
 
-                    // Quick Rotate 90° button
+                    // Rotate 90° quick button
                     IconButton(
                         onClick = onCycleRotation,
-                        modifier = Modifier.size(30.dp)
+                        modifier = Modifier.size(28.dp)
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.RotateRight,
                             contentDescription = "Rotate 90°",
                             tint = uiState.theme.primaryColor,
-                            modifier = Modifier.size(17.dp)
-                        )
-                    }
-
-                    // Orientation toggle (Landscape / Portrait) button
-                    IconButton(
-                        onClick = onToggleOrientation,
-                        modifier = Modifier.size(30.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ScreenRotation,
-                            contentDescription = "Toggle Landscape/Portrait",
-                            tint = if (uiState.rotationAngle.isLandscape) uiState.theme.primaryColor else TextSecondary,
-                            modifier = Modifier.size(17.dp)
-                        )
-                    }
-                }
-
-                // Action icons: Size, Font, Theme, Settings, Fullscreen
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Quick Size Scale Cycle Button
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(SurfaceDark)
-                            .clickable { onCycleFontSize() }
-                            .border(1.dp, SurfaceCardBorder, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.FormatSize,
-                            contentDescription = "Size: ${(uiState.fontSizeScale * 100).toInt()}%",
-                            tint = uiState.theme.primaryColor,
-                            modifier = Modifier.size(15.dp)
+                            modifier = Modifier.size(16.dp)
                         )
                     }
 
                     // Quick Font Family Cycle Button
                     Box(
                         modifier = Modifier
-                            .size(28.dp)
+                            .size(26.dp)
                             .clip(CircleShape)
                             .background(SurfaceDark)
                             .clickable { onCycleFontFamily() }
@@ -175,45 +225,63 @@ fun ClockCard(
                             imageVector = Icons.Default.TextFields,
                             contentDescription = "Font: ${uiState.fontFamily.label}",
                             tint = uiState.theme.primaryColor,
-                            modifier = Modifier.size(15.dp)
+                            modifier = Modifier.size(13.dp)
+                        )
+                    }
+
+                    // Quick Size Scale Cycle Button
+                    Box(
+                        modifier = Modifier
+                            .size(26.dp)
+                            .clip(CircleShape)
+                            .background(SurfaceDark)
+                            .clickable { onCycleFontSize() }
+                            .border(1.dp, SurfaceCardBorder, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FormatSize,
+                            contentDescription = "Size: ${(uiState.fontSizeScale * 100).toInt()}%",
+                            tint = uiState.theme.primaryColor,
+                            modifier = Modifier.size(13.dp)
                         )
                     }
 
                     // Quick Theme Swatch Button
                     Box(
                         modifier = Modifier
-                            .size(28.dp)
+                            .size(26.dp)
                             .clip(CircleShape)
                             .background(uiState.theme.primaryColor)
                             .clickable { onCycleTheme() }
-                            .border(1.dp, Color.White.copy(alpha = 0.5f), CircleShape),
+                            .border(1.dp, Color.White.copy(alpha = 0.6f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Palette,
                             contentDescription = "Theme",
                             tint = BackgroundDark,
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier.size(12.dp)
                         )
                     }
 
                     // Settings Dialog Button
                     IconButton(
                         onClick = onOpenSettings,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(28.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Settings,
                             contentDescription = "Settings",
                             tint = TextSecondary,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(16.dp)
                         )
                     }
 
                     // Fullscreen Button
                     IconButton(
                         onClick = onToggleFullScreen,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(30.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Fullscreen,
@@ -233,9 +301,10 @@ fun ClockCard(
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(if (isLandscape) (200.dp * scale.coerceIn(0.85f, 1.25f)) else (160.dp * scale.coerceIn(0.85f, 1.25f)))
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.Black.copy(alpha = 0.4f))
+                    .height(if (isLandscape) (210.dp * scale.coerceIn(0.85f, 1.25f)) else (175.dp * scale.coerceIn(0.85f, 1.25f)))
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .border(1.dp, SurfaceCardBorder.copy(alpha = 0.6f), RoundedCornerShape(20.dp))
                     .clickable { onToggleFullScreen() }
                     .padding(8.dp),
                 contentAlignment = Alignment.Center
@@ -244,6 +313,23 @@ fun ClockCard(
                 val boxH = maxHeight
                 val contentW = if (isLandscape) boxH else boxW
                 val contentH = if (isLandscape) boxW else boxH
+
+                // Ambient glow behind digits
+                Box(
+                    modifier = Modifier
+                        .size(
+                            width = (contentW * 0.75f).coerceAtLeast(160.dp),
+                            height = (contentH * 0.5f).coerceAtLeast(80.dp)
+                        )
+                        .background(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    uiState.effectiveColor.copy(alpha = if (uiState.nightDimming) 0.04f else 0.12f),
+                                    Color.Transparent
+                                )
+                            )
+                        )
+                )
 
                 // Responsively determine slot units required to fit every phone screen
                 val totalSlotUnits = when (uiState.secondsDisplay) {
@@ -289,6 +375,29 @@ fun ClockCard(
                             rotationZ = uiState.rotationAngle.degrees.toFloat()
                         }
                 ) {
+                    // Portrait Mode Date Capsule Header
+                    if (uiState.showDate && snapshot.dateFormatted.isNotEmpty()) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = uiState.effectiveColor.copy(alpha = 0.08f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, uiState.effectiveColor.copy(alpha = 0.18f))
+                        ) {
+                            Text(
+                                text = "${snapshot.dayOfWeek.uppercase()} • ${snapshot.dateFormatted.uppercase()}",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = dateFontSize,
+                                    fontFamily = clockFont,
+                                    letterSpacing = 1.2.sp
+                                ),
+                                color = uiState.effectiveSecondaryColor,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
+                                maxLines = 1
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                    }
+
                     // Time Digits Row (with fixed-width non-shaking slots)
                     Row(
                         verticalAlignment = Alignment.Bottom,
@@ -366,17 +475,23 @@ fun ClockCard(
                                         .padding(bottom = if (isLandscape) 4.dp else 8.dp, start = 4.dp),
                                     contentAlignment = Alignment.BottomStart
                                 ) {
-                                    Text(
-                                        text = snapshot.seconds,
-                                        style = MaterialTheme.typography.titleLarge.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = smallSecFontSize,
-                                            fontFamily = clockFont,
-                                            fontFeatureSettings = "tnum"
-                                        ),
-                                        color = uiState.effectiveSecondaryColor,
-                                        maxLines = 1
-                                    )
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = uiState.effectiveColor.copy(alpha = 0.12f)
+                                    ) {
+                                        Text(
+                                            text = snapshot.seconds,
+                                            style = MaterialTheme.typography.titleLarge.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = smallSecFontSize,
+                                                fontFamily = clockFont,
+                                                fontFeatureSettings = "tnum"
+                                            ),
+                                            color = uiState.effectiveSecondaryColor,
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                                            maxLines = 1
+                                        )
+                                    }
                                 }
                             }
                             ClockSecondsDisplay.NONE -> {}
@@ -410,24 +525,10 @@ fun ClockCard(
                         }
                     }
 
-                    // Optional Date & Day of Week
-                    if (uiState.showDate && snapshot.dateFormatted.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "${snapshot.dayOfWeek}, ${snapshot.dateFormatted}",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontWeight = FontWeight.Medium,
-                                fontSize = dateFontSize,
-                                fontFamily = clockFont
-                            ),
-                            color = uiState.effectiveSecondaryColor
-                        )
-                    }
-
                     // Active Pomodoro Tracker if running
                     val isPomodoroRunning = pomodoroStatus != null && pomodoroStatus.parsedState != PomodoroState.IDLE
                     if (isPomodoroRunning && pomodoroStatus != null) {
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                         val pState = pomodoroStatus.parsedState
                         val isWork = pState == PomodoroState.WORK
                         val pColor = if (pomodoroStatus.isPaused) AccentAmber else if (isWork) AccentRed else AccentGreen
@@ -438,29 +539,30 @@ fun ClockCard(
                         val statusText = if (pomodoroStatus.isPaused) "$stateLabel (PAUSED) $timeStr" else "$stateLabel $timeStr"
 
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(12.dp),
                             color = pColor.copy(alpha = 0.15f),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, pColor.copy(alpha = 0.5f)),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, pColor),
                             modifier = Modifier
-                                .clip(RoundedCornerShape(10.dp))
+                                .clip(RoundedCornerShape(12.dp))
                                 .clickable { onSwitchToPomodoro?.invoke() }
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
                             ) {
                                 Icon(
                                     imageVector = if (pomodoroStatus.isPaused) Icons.Default.Pause else Icons.Default.HourglassTop,
                                     contentDescription = "Pomodoro",
                                     tint = pColor,
-                                    modifier = Modifier.size(12.dp)
+                                    modifier = Modifier.size(13.dp)
                                 )
                                 Text(
                                     text = statusText,
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 11.sp
+                                        fontSize = 11.sp,
+                                        letterSpacing = 1.sp
                                     ),
                                     color = pColor
                                 )
@@ -470,7 +572,7 @@ fun ClockCard(
                 }
             }
 
-            // 3. BOTTOM QUICK CONTROLS
+            // 3. BOTTOM QUICK CONTROLS: Segmented toggle chips and copy time
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -528,7 +630,7 @@ fun ClockCard(
                         },
                         label = {
                             Text(
-                                text = if (uiState.nightDimming) "Night ON" else "Day",
+                                text = if (uiState.nightDimming) "Night" else "Day",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.sp
                             )
@@ -547,13 +649,13 @@ fun ClockCard(
                 // Copy Time Button
                 IconButton(
                     onClick = onCopyTime,
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(34.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.ContentCopy,
                         contentDescription = "Copy Time",
                         tint = TextSecondary,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(17.dp)
                     )
                 }
             }

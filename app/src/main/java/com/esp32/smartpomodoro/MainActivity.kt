@@ -55,7 +55,9 @@ class MainActivity : ComponentActivity() {
         orientationEventListener = object : OrientationEventListener(this) {
             override fun onOrientationChanged(orientation: Int) {
                 if (orientation == ORIENTATION_UNKNOWN) return
-                // Convert sensor degrees (0-359) to clockwise screen rotation angles
+                // Convert physical sensor degrees (0-359) to compensating display rotation angles
+                // When tilted clockwise 90° (left side up, 45..134°), graphics must rotate 270° to stay upright.
+                // When tilted counter-clockwise 90° (right side up, 225..314°), graphics must rotate 90° to stay upright.
                 val angle = when (orientation) {
                     in 45..134 -> ClockRotationAngle.ROTATION_270
                     in 135..224 -> ClockRotationAngle.ROTATION_180
