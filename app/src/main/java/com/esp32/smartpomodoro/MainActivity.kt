@@ -1,6 +1,7 @@
 package com.esp32.smartpomodoro
 
 import android.Manifest
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -119,6 +120,27 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                // Dynamic hardware screen orientation:
+                // When in Fullscreen Desk Clock mode, rotate the entire physical display window
+                // so the user gets 100% true full screen (never clamped or clipped with black bars).
+                // When on Dashboard, keep portrait for normal vertical scrolling.
+                LaunchedEffect(clockUiState.isFullScreen, clockUiState.isAutoRotate, clockUiState.rotationAngle) {
+                    if (clockUiState.isFullScreen) {
+                        requestedOrientation = if (clockUiState.isAutoRotate) {
+                            ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+                        } else {
+                            when (clockUiState.rotationAngle) {
+                                ClockRotationAngle.ROTATION_0 -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                                ClockRotationAngle.ROTATION_90 -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                                ClockRotationAngle.ROTATION_180 -> ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT
+                                ClockRotationAngle.ROTATION_270 -> ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE
+                            }
+                        }
+                    } else {
+                        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                    }
+                }
+
                 MainDashboardScreen(
                     pomodoroViewModel = pomodoroViewModel,
                     stopwatchViewModel = stopwatchViewModel,
@@ -126,6 +148,16 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        if (clockViewModel.uiState.value.isFullScreen) {
+            clockViewModel.setFullScreen(false)
+            return
+        }
+        @Suppress("DEPRECATION")
+        super.onBackPressed()
     }
 
     override fun onDestroy() {

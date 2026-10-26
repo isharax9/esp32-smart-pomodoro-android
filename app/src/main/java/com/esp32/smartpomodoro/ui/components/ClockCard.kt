@@ -17,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -30,9 +29,9 @@ import com.esp32.smartpomodoro.ui.theme.*
 fun ClockCard(
     uiState: ClockUiState,
     pomodoroStatus: PomodoroStatus? = null,
-    onCycleRotation: () -> Unit,
-    onSelectRotation: (ClockRotationAngle) -> Unit,
-    onToggleOrientation: () -> Unit,
+    onCycleRotation: () -> Unit = {},
+    onSelectRotation: (ClockRotationAngle) -> Unit = {},
+    onToggleOrientation: () -> Unit = {},
     onToggleAutoRotate: () -> Unit = {},
     onCycleTheme: () -> Unit,
     onCycleFontFamily: () -> Unit = {},
@@ -46,7 +45,6 @@ fun ClockCard(
     onSwitchToPomodoro: (() -> Unit)? = null
 ) {
     val snapshot = uiState.snapshot
-    val isLandscape = uiState.rotationAngle.isLandscape
 
     Card(
         modifier = Modifier
@@ -63,7 +61,7 @@ fun ClockCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // 1. STREAMLINED HEADER: Desk Clock title, live status, orientation pill & quick actions
+            // 1. CLEAN BALANCED HEADER: Desk Clock title, format badge, theme, settings, and fullscreen
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -74,7 +72,6 @@ fun ClockCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Pulsing theme status dot
                     Box(
                         modifier = Modifier
                             .size(10.dp)
@@ -100,210 +97,90 @@ fun ClockCard(
                                 fontSize = 10.sp
                             ),
                             color = uiState.theme.primaryColor,
-                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
                 }
 
-                // Interactive Control Group (Orientation pill with menu, Rotate, Font, Size, Theme, Settings, Fullscreen)
+                // Compact action icons: Theme swatch, Settings, and prominent Fullscreen button
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    var showOrientationMenu by remember { mutableStateOf(false) }
-
-                    // Smart Orientation Pill (Tap opens quick angle & auto-rotate selector)
-                    Box {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (uiState.isAutoRotate) uiState.theme.primaryColor.copy(alpha = 0.2f) else SurfaceDark,
-                            border = androidx.compose.foundation.BorderStroke(
-                                1.dp,
-                                if (uiState.isAutoRotate) uiState.theme.primaryColor else SurfaceCardBorder
-                            ),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable { showOrientationMenu = true }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 5.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(3.dp)
-                            ) {
-                                Icon(
-                                    imageVector = if (uiState.isAutoRotate) Icons.Default.AutoMode else Icons.AutoMirrored.Filled.RotateRight,
-                                    contentDescription = "Rotation",
-                                    tint = if (uiState.isAutoRotate) uiState.theme.primaryColor else TextSecondary,
-                                    modifier = Modifier.size(13.dp)
-                                )
-                                Text(
-                                    text = if (uiState.isAutoRotate) "Auto" else "${uiState.rotationAngle.degrees}°",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 11.sp
-                                    ),
-                                    color = if (uiState.isAutoRotate) uiState.theme.primaryColor else TextSecondary
-                                )
-                            }
-                        }
-
-                        DropdownMenu(
-                            expanded = showOrientationMenu,
-                            onDismissRequest = { showOrientationMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Auto-Rotate (Sensor)") },
-                                onClick = {
-                                    onToggleAutoRotate()
-                                    showOrientationMenu = false
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Default.AutoMode, contentDescription = null, tint = uiState.theme.primaryColor)
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Toggle Portrait / Landscape") },
-                                onClick = {
-                                    onToggleOrientation()
-                                    showOrientationMenu = false
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Default.ScreenRotation, contentDescription = null, tint = TextSecondary)
-                                }
-                            )
-                            HorizontalDivider()
-                            ClockRotationAngle.entries.forEach { angle ->
-                                val isSelected = !uiState.isAutoRotate && uiState.rotationAngle == angle
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            text = "${angle.degrees}°",
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                            color = if (isSelected) uiState.theme.primaryColor else TextPrimary
-                                        )
-                                    },
-                                    onClick = {
-                                        onSelectRotation(angle)
-                                        showOrientationMenu = false
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            Icons.AutoMirrored.Filled.RotateRight,
-                                            contentDescription = null,
-                                            tint = if (isSelected) uiState.theme.primaryColor else TextSecondary
-                                        )
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    // Rotate 90° quick button
-                    IconButton(
-                        onClick = onCycleRotation,
-                        modifier = Modifier.size(28.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.RotateRight,
-                            contentDescription = "Rotate 90°",
-                            tint = uiState.theme.primaryColor,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-
-                    // Quick Font Family Cycle Button
-                    Box(
-                        modifier = Modifier
-                            .size(26.dp)
-                            .clip(CircleShape)
-                            .background(SurfaceDark)
-                            .clickable { onCycleFontFamily() }
-                            .border(1.dp, SurfaceCardBorder, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.TextFields,
-                            contentDescription = "Font: ${uiState.fontFamily.label}",
-                            tint = uiState.theme.primaryColor,
-                            modifier = Modifier.size(13.dp)
-                        )
-                    }
-
-                    // Quick Size Scale Cycle Button
-                    Box(
-                        modifier = Modifier
-                            .size(26.dp)
-                            .clip(CircleShape)
-                            .background(SurfaceDark)
-                            .clickable { onCycleFontSize() }
-                            .border(1.dp, SurfaceCardBorder, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.FormatSize,
-                            contentDescription = "Size: ${(uiState.fontSizeScale * 100).toInt()}%",
-                            tint = uiState.theme.primaryColor,
-                            modifier = Modifier.size(13.dp)
-                        )
-                    }
-
                     // Quick Theme Swatch Button
                     Box(
                         modifier = Modifier
-                            .size(26.dp)
+                            .size(28.dp)
                             .clip(CircleShape)
                             .background(uiState.theme.primaryColor)
                             .clickable { onCycleTheme() }
-                            .border(1.dp, Color.White.copy(alpha = 0.6f), CircleShape),
+                            .border(1.5.dp, Color.White.copy(alpha = 0.6f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Palette,
                             contentDescription = "Theme",
                             tint = BackgroundDark,
-                            modifier = Modifier.size(12.dp)
+                            modifier = Modifier.size(14.dp)
                         )
                     }
 
                     // Settings Dialog Button
                     IconButton(
                         onClick = onOpenSettings,
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(32.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Settings,
                             contentDescription = "Settings",
                             tint = TextSecondary,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
 
-                    // Fullscreen Button
-                    IconButton(
-                        onClick = onToggleFullScreen,
-                        modifier = Modifier.size(30.dp)
+                    // Fullscreen Button (Prominent pill with icon and label for instant accessibility)
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = uiState.theme.primaryColor,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable { onToggleFullScreen() }
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Fullscreen,
-                            contentDescription = "Fullscreen Bedside Clock",
-                            tint = uiState.theme.primaryColor,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Fullscreen,
+                                contentDescription = "Fullscreen",
+                                tint = BackgroundDark,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "Full",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp
+                                ),
+                                color = BackgroundDark
+                            )
+                        }
                     }
                 }
             }
 
             HorizontalDivider(color = SurfaceCardBorder)
 
-            // 2. GIANT TIME READOUT CONTAINER (Interactive: tap to expand fullscreen)
+            // 2. TIME READOUT BEZEL CONTAINER (Tap anywhere to expand into Fullscreen mode)
             val scale = uiState.fontSizeScale
 
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(if (isLandscape) (210.dp * scale.coerceIn(0.85f, 1.25f)) else (175.dp * scale.coerceIn(0.85f, 1.25f)))
+                    .height(175.dp * scale.coerceIn(0.85f, 1.25f))
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Color.Black.copy(alpha = 0.5f))
+                    .background(Color.Black.copy(alpha = 0.55f))
                     .border(1.dp, SurfaceCardBorder.copy(alpha = 0.6f), RoundedCornerShape(20.dp))
                     .clickable { onToggleFullScreen() }
                     .padding(8.dp),
@@ -311,15 +188,13 @@ fun ClockCard(
             ) {
                 val boxW = maxWidth
                 val boxH = maxHeight
-                val contentW = if (isLandscape) boxH else boxW
-                val contentH = if (isLandscape) boxW else boxH
 
                 // Ambient glow behind digits
                 Box(
                     modifier = Modifier
                         .size(
-                            width = (contentW * 0.75f).coerceAtLeast(160.dp),
-                            height = (contentH * 0.5f).coerceAtLeast(80.dp)
+                            width = (boxW * 0.75f).coerceAtLeast(160.dp),
+                            height = (boxH * 0.5f).coerceAtLeast(80.dp)
                         )
                         .background(
                             brush = Brush.radialGradient(
@@ -331,23 +206,23 @@ fun ClockCard(
                         )
                 )
 
-                // Responsively determine slot units required to fit every phone screen
+                // Responsively determine slot units required to fit screen width
                 val totalSlotUnits = when (uiState.secondsDisplay) {
                     ClockSecondsDisplay.BIG -> if (snapshot.amPm.isNotEmpty()) 5.3f else 4.5f
                     ClockSecondsDisplay.SMALL -> if (snapshot.amPm.isNotEmpty()) 4.4f else 3.6f
                     ClockSecondsDisplay.NONE -> if (snapshot.amPm.isNotEmpty()) 3.7f else 2.9f
                 }
 
-                val safeW = (contentW.value - 20f).coerceAtLeast(100f)
+                val safeW = (boxW.value - 20f).coerceAtLeast(100f)
                 val fontFromW = safeW / totalSlotUnits
-                val fontFromH = if (uiState.showDate) (contentH.value - 40f) * 0.55f else (contentH.value - 24f) * 0.72f
+                val fontFromH = if (uiState.showDate) (boxH.value - 40f) * 0.55f else (boxH.value - 24f) * 0.72f
                 val baseResponsiveFont = minOf(fontFromW, fontFromH).coerceIn(24f, 68f)
 
                 val digitFontSize = (baseResponsiveFont * scale)
                     .coerceIn(18f, (safeW / totalSlotUnits * 1.22f)).sp
                 val smallSecFontSize = (digitFontSize.value * 0.44f).coerceIn(11f, 32f).sp
                 val amPmFontSize = (digitFontSize.value * 0.26f).coerceIn(9f, 18f).sp
-                val dateFontSize = (contentW.value * 0.038f * scale.coerceIn(0.85f, 1.2f)).coerceIn(10f, 16f).sp
+                val dateFontSize = (boxW.value * 0.038f * scale.coerceIn(0.85f, 1.2f)).coerceIn(10f, 16f).sp
 
                 val clockFont = uiState.fontFamily.toComposeFontFamily()
                 val clockLetterSpacing = if (uiState.fontFamily == ClockFontFamily.MONOSPACE) (-1).sp else 0.sp
@@ -366,16 +241,13 @@ fun ClockCard(
                     fontFeatureSettings = "tnum"
                 )
 
+                // The clock inside the dashboard card is ALWAYS oriented upright horizontally
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
-                    modifier = Modifier
-                        .size(width = contentW, height = contentH)
-                        .graphicsLayer {
-                            rotationZ = uiState.rotationAngle.degrees.toFloat()
-                        }
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    // Portrait Mode Date Capsule Header
+                    // Date Capsule Header
                     if (uiState.showDate && snapshot.dateFormatted.isNotEmpty()) {
                         Surface(
                             shape = RoundedCornerShape(12.dp),
@@ -472,7 +344,7 @@ fun ClockCard(
                                 Box(
                                     modifier = Modifier
                                         .width(smallSecSlotWidth)
-                                        .padding(bottom = if (isLandscape) 4.dp else 8.dp, start = 4.dp),
+                                        .padding(bottom = 6.dp, start = 4.dp),
                                     contentAlignment = Alignment.BottomStart
                                 ) {
                                     Surface(
@@ -502,7 +374,7 @@ fun ClockCard(
                             Box(
                                 modifier = Modifier
                                     .width(amPmSlotWidth)
-                                    .padding(bottom = if (isLandscape) 6.dp else 10.dp, start = 4.dp),
+                                    .padding(bottom = 8.dp, start = 4.dp),
                                 contentAlignment = Alignment.BottomStart
                             ) {
                                 Surface(
