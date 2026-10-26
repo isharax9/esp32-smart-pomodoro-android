@@ -224,11 +224,11 @@ class ClockEngineTest {
 
     @Test
     fun testAutoRotateTogglingAndResetOnManual() {
-        assertFalse(engine.isAutoRotate)
-        assertTrue(engine.toggleAutoRotate())
         assertTrue(engine.isAutoRotate)
         assertFalse(engine.toggleAutoRotate())
         assertFalse(engine.isAutoRotate)
+        assertTrue(engine.toggleAutoRotate())
+        assertTrue(engine.isAutoRotate)
 
         engine.isAutoRotate = true
         assertTrue(engine.isAutoRotate)

@@ -9,8 +9,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Wifi
-import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -19,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.esp32.smartpomodoro.ui.theme.*
@@ -38,86 +37,104 @@ fun HeaderBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column {
+        // App Title and Subtitle (Sized to fit cleanly without truncation)
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
             Text(
                 text = "SMART POMODORO",
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Black,
-                    letterSpacing = 1.sp
+                    fontSize = 16.sp,
+                    letterSpacing = 0.5.sp
                 ),
-                color = TextPrimary
+                color = TextPrimary,
+                maxLines = 1
             )
             Text(
                 text = "ESP32 Desk Environment",
-                style = MaterialTheme.typography.labelSmall,
-                color = TextSecondary
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 11.sp
+                ),
+                color = TextSecondary,
+                maxLines = 1
             )
         }
 
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // Action Controls (Explicit Box-based sizing to prevent Material3 IconButton touch-target overlap)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Connection Pill (clickable to change IP)
+            // Connection Pill (clickable to change IP or reconnect)
             Surface(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
+                    .clip(RoundedCornerShape(16.dp))
                     .clickable { onOpenIpSettings() },
                 color = SurfaceCard,
-                shape = RoundedCornerShape(20.dp)
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(8.dp)
+                            .size(7.dp)
                             .clip(CircleShape)
                             .background(statusColor)
                     )
                     Text(
                         text = if (isConnected) hostAddress else "Offline",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = if (isConnected) TextPrimary else AccentRed
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
+                        ),
+                        color = if (isConnected) TextPrimary else AccentRed,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
 
-            // Quick Pin Calibration Dialog Button
-            IconButton(
-                onClick = onOpenCalibration,
+            // Quick Pin Calibration Dialog Button (Box container guarantees zero overlap)
+            Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(32.dp)
                     .clip(CircleShape)
                     .background(SurfaceCard)
+                    .clickable { onOpenCalibration() },
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Build,
                     contentDescription = "Pin Calibration",
                     tint = TextSecondary,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(15.dp)
                 )
             }
 
-            // Settings Button
-            IconButton(
-                onClick = onOpenIpSettings,
+            // Settings Button (Box container guarantees zero overlap)
+            Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(32.dp)
                     .clip(CircleShape)
                     .background(SurfaceCard)
+                    .clickable { onOpenIpSettings() },
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Settings,
                     contentDescription = "Connection Settings",
                     tint = TextSecondary,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(15.dp)
                 )
             }
         }

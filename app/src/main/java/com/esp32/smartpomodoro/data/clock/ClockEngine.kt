@@ -34,7 +34,7 @@ class ClockEngine(
     var secondsDisplay: ClockSecondsDisplay = ClockSecondsDisplay.SMALL
     var showDate: Boolean = true
     var blinkingColon: Boolean = true
-    var isAutoRotate: Boolean = false
+    var isAutoRotate: Boolean = true
     var rotationAngle: ClockRotationAngle = ClockRotationAngle.ROTATION_0
     var theme: ClockTheme = ClockTheme.AMBER_NIGHT
     var fontFamily: ClockFontFamily = ClockFontFamily.MONOSPACE

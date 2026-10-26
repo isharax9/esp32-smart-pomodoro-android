@@ -29,7 +29,7 @@ class ClockViewModelTest {
         assertEquals(ClockSecondsDisplay.SMALL, state.secondsDisplay)
         assertTrue(state.showDate)
         assertTrue(state.blinkingColon)
-        assertFalse(state.isAutoRotate)
+        assertTrue(state.isAutoRotate)
         assertEquals(ClockRotationAngle.ROTATION_0, state.rotationAngle)
         assertEquals(ClockTheme.AMBER_NIGHT, state.theme)
         assertFalse(state.nightDimming)
@@ -60,6 +60,8 @@ class ClockViewModelTest {
 
     @Test
     fun testAutoRotateAndSensorOrientationHandling() {
+        assertTrue(viewModel.uiState.value.isAutoRotate)
+        viewModel.toggleAutoRotate()
         assertFalse(viewModel.uiState.value.isAutoRotate)
         viewModel.toggleAutoRotate()
         assertTrue(viewModel.uiState.value.isAutoRotate)

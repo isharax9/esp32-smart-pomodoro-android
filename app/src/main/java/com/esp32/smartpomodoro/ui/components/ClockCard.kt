@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.esp32.smartpomodoro.data.model.*
@@ -138,7 +139,7 @@ fun ClockCard(
                         )
                     }
 
-                    // Fullscreen Button (Prominent pill with icon and label for instant accessibility)
+                    // Fullscreen Button
                     Surface(
                         shape = RoundedCornerShape(10.dp),
                         color = uiState.theme.primaryColor,
@@ -215,21 +216,20 @@ fun ClockCard(
 
                 val safeW = (boxW.value - 20f).coerceAtLeast(100f)
                 val fontFromW = safeW / totalSlotUnits
-                val fontFromH = if (uiState.showDate) (boxH.value - 40f) * 0.55f else (boxH.value - 24f) * 0.72f
+                val fontFromH = if (uiState.showDate) (boxH.value - 36f) * 0.58f else (boxH.value - 20f) * 0.74f
                 val baseResponsiveFont = minOf(fontFromW, fontFromH).coerceIn(24f, 68f)
 
                 val digitFontSize = (baseResponsiveFont * scale)
                     .coerceIn(18f, (safeW / totalSlotUnits * 1.22f)).sp
                 val smallSecFontSize = (digitFontSize.value * 0.44f).coerceIn(11f, 32f).sp
                 val amPmFontSize = (digitFontSize.value * 0.26f).coerceIn(9f, 18f).sp
-                val dateFontSize = (boxW.value * 0.038f * scale.coerceIn(0.85f, 1.2f)).coerceIn(10f, 16f).sp
+                val dateFontSize = (boxW.value * 0.038f * scale.coerceIn(0.85f, 1.2f)).coerceIn(11f, 15f).sp
 
                 val clockFont = uiState.fontFamily.toComposeFontFamily()
                 val clockLetterSpacing = if (uiState.fontFamily == ClockFontFamily.MONOSPACE) (-1).sp else 0.sp
 
-                // Fixed slot dimensions guaranteeing zero shaking/jitter when seconds tick
                 val digitSlotWidth = (digitFontSize.value * 1.25f).dp
-                val colonSlotWidth = (digitFontSize.value * 0.32f).dp
+                val colonSlotWidth = (digitFontSize.value * 0.30f).dp
                 val smallSecSlotWidth = (smallSecFontSize.value * 1.55f).dp
                 val amPmSlotWidth = (amPmFontSize.value * 2.6f).dp
 
@@ -241,38 +241,30 @@ fun ClockCard(
                     fontFeatureSettings = "tnum"
                 )
 
-                // The clock inside the dashboard card is ALWAYS oriented upright horizontally
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    // Date Capsule Header
+                    // Date Display (Clean, natural text without any frame or border)
                     if (uiState.showDate && snapshot.dateFormatted.isNotEmpty()) {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = uiState.effectiveColor.copy(alpha = 0.08f),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, uiState.effectiveColor.copy(alpha = 0.18f))
-                        ) {
-                            Text(
-                                text = "${snapshot.dayOfWeek.uppercase()} • ${snapshot.dateFormatted.uppercase()}",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = dateFontSize,
-                                    fontFamily = clockFont,
-                                    letterSpacing = 1.2.sp
-                                ),
-                                color = uiState.effectiveSecondaryColor,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
-                                maxLines = 1
-                            )
-                        }
+                        Text(
+                            text = "${snapshot.dayOfWeek}, ${snapshot.dateFormatted}",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.Medium,
+                                fontSize = dateFontSize,
+                                fontFamily = clockFont,
+                                letterSpacing = 0.5.sp
+                            ),
+                            color = uiState.effectiveSecondaryColor,
+                            textAlign = TextAlign.Center
+                        )
                         Spacer(modifier = Modifier.height(6.dp))
                     }
 
-                    // Time Digits Row (with fixed-width non-shaking slots)
+                    // Time Digits Row (With Symmetrically Centered Colon)
                     Row(
-                        verticalAlignment = Alignment.Bottom,
+                        verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
                         // Hours Slot
@@ -288,18 +280,14 @@ fun ClockCard(
                             )
                         }
 
-                        // Blinking Colon Slot
-                        Box(
-                            modifier = Modifier.width(colonSlotWidth),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = ":",
-                                style = digitTextStyle,
-                                color = if (snapshot.colonVisible) uiState.effectiveColor else Color.Transparent,
-                                maxLines = 1
-                            )
-                        }
+                        // Symmetrically Centered Colon
+                        CenteredClockColon(
+                            slotWidth = colonSlotWidth,
+                            fontSize = digitFontSize.value,
+                            color = uiState.effectiveColor,
+                            colonVisible = snapshot.colonVisible,
+                            blinkingColon = uiState.blinkingColon
+                        )
 
                         // Minutes Slot
                         Box(
@@ -317,17 +305,13 @@ fun ClockCard(
                         // Seconds Slot
                         when (uiState.secondsDisplay) {
                             ClockSecondsDisplay.BIG -> {
-                                Box(
-                                    modifier = Modifier.width(colonSlotWidth),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = ":",
-                                        style = digitTextStyle,
-                                        color = if (snapshot.colonVisible) uiState.effectiveColor else Color.Transparent,
-                                        maxLines = 1
-                                    )
-                                }
+                                CenteredClockColon(
+                                    slotWidth = colonSlotWidth,
+                                    fontSize = digitFontSize.value,
+                                    color = uiState.effectiveColor,
+                                    colonVisible = snapshot.colonVisible,
+                                    blinkingColon = uiState.blinkingColon
+                                )
                                 Box(
                                     modifier = Modifier.width(digitSlotWidth),
                                     contentAlignment = Alignment.CenterStart
@@ -344,8 +328,8 @@ fun ClockCard(
                                 Box(
                                     modifier = Modifier
                                         .width(smallSecSlotWidth)
-                                        .padding(bottom = 6.dp, start = 4.dp),
-                                    contentAlignment = Alignment.BottomStart
+                                        .padding(start = 4.dp),
+                                    contentAlignment = Alignment.CenterStart
                                 ) {
                                     Surface(
                                         shape = RoundedCornerShape(6.dp),
@@ -374,8 +358,8 @@ fun ClockCard(
                             Box(
                                 modifier = Modifier
                                     .width(amPmSlotWidth)
-                                    .padding(bottom = 8.dp, start = 4.dp),
-                                contentAlignment = Alignment.BottomStart
+                                    .padding(start = 4.dp),
+                                contentAlignment = Alignment.CenterStart
                             ) {
                                 Surface(
                                     shape = RoundedCornerShape(6.dp),
