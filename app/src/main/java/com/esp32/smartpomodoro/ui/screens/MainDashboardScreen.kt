@@ -63,6 +63,7 @@ fun MainDashboardScreen(
         }
         GiantClockFullScreen(
             uiState = clockUiState,
+            pomodoroStatus = pomodoroUiState.status,
             onCycleRotation = { clockViewModel.cycleRotation() },
             onSelectRotation = { clockViewModel.setRotationAngle(it) },
             onToggleOrientation = { clockViewModel.toggleOrientation() },
@@ -70,6 +71,10 @@ fun MainDashboardScreen(
             onSwitchToStopwatch = {
                 clockViewModel.setFullScreen(false)
                 selectedTab = DashboardTab.STOPWATCH
+            },
+            onSwitchToPomodoro = {
+                clockViewModel.setFullScreen(false)
+                selectedTab = DashboardTab.POMODORO
             },
             onCycleTheme = { clockViewModel.cycleTheme() },
             onToggleTimeFormat = { clockViewModel.toggleTimeFormat() },
@@ -330,6 +335,7 @@ fun MainDashboardScreen(
                     if (clockViewModel != null && clockUiState != null) {
                         ClockCard(
                             uiState = clockUiState,
+                            pomodoroStatus = pomodoroUiState.status,
                             onCycleRotation = { clockViewModel.cycleRotation() },
                             onSelectRotation = { clockViewModel.setRotationAngle(it) },
                             onToggleOrientation = { clockViewModel.toggleOrientation() },
@@ -340,7 +346,8 @@ fun MainDashboardScreen(
                             onToggleNightDimming = { clockViewModel.toggleNightDimming() },
                             onToggleFullScreen = { clockViewModel.setFullScreen(true) },
                             onOpenSettings = { clockViewModel.setShowSettingsDialog(true) },
-                            onCopyTime = { clockViewModel.copyCurrentTimeToClipboard(context) }
+                            onCopyTime = { clockViewModel.copyCurrentTimeToClipboard(context) },
+                            onSwitchToPomodoro = { selectedTab = DashboardTab.POMODORO }
                         )
                     }
                 }

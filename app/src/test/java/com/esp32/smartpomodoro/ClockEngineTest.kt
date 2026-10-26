@@ -156,7 +156,7 @@ class ClockEngineTest {
         timeProvider.setCalendarTime(2026, Calendar.OCTOBER, 26, 10, 0, 0)
         val snapshot = engine.createSnapshot()
 
-        assertEquals("Mon, Oct 26, 2026", snapshot.dateFormatted)
+        assertEquals("Oct 26, 2026", snapshot.dateFormatted)
         assertEquals("Monday", snapshot.dayOfWeek)
     }
 

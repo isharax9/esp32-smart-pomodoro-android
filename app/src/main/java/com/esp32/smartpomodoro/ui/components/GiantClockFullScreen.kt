@@ -33,11 +33,13 @@ import kotlinx.coroutines.delay
 @Composable
 fun GiantClockFullScreen(
     uiState: ClockUiState,
+    pomodoroStatus: PomodoroStatus? = null,
     onCycleRotation: () -> Unit,
     onSelectRotation: (ClockRotationAngle) -> Unit,
     onToggleOrientation: () -> Unit,
     onToggleAutoRotate: () -> Unit = {},
     onSwitchToStopwatch: (() -> Unit)? = null,
+    onSwitchToPomodoro: (() -> Unit)? = null,
     onCycleTheme: () -> Unit,
     onToggleTimeFormat: () -> Unit,
     onCycleSeconds: () -> Unit,
@@ -233,6 +235,52 @@ fun GiantClockFullScreen(
                         ),
                         color = uiState.effectiveSecondaryColor
                     )
+                }
+
+                // Running Pomodoro Timer Indicator
+                if (pomodoroStatus != null && pomodoroStatus.parsedState != PomodoroState.IDLE) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    val pState = pomodoroStatus.parsedState
+                    val isWork = pState == PomodoroState.WORK
+                    val pColor = if (pomodoroStatus.isPaused) AccentAmber else if (isWork) AccentRed else AccentGreen
+                    val min = pomodoroStatus.remainingSec / 60
+                    val sec = pomodoroStatus.remainingSec % 60
+                    val timeStr = String.format("%02d:%02d", min, sec)
+                    val stateLabel = if (isWork) "FOCUS" else "BREAK"
+                    val statusText = if (pomodoroStatus.isPaused) "$stateLabel (PAUSED)  $timeStr" else "$stateLabel  $timeStr"
+
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = pColor.copy(alpha = 0.18f),
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, pColor),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .clickable {
+                                onSwitchToPomodoro?.invoke()
+                            }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (pomodoroStatus.isPaused) Icons.Default.Pause else Icons.Default.HourglassTop,
+                                contentDescription = "Pomodoro",
+                                tint = pColor,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = statusText,
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = (computedFontSize.value * 0.16f).coerceIn(12f, 22f).sp,
+                                    letterSpacing = 1.sp
+                                ),
+                                color = pColor
+                            )
+                        }
+                    }
                 }
             }
         }

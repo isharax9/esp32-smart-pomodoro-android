@@ -54,7 +54,7 @@ class ClockEngine(
         if (cachedLocale != currentLocale || cachedTimeZone != currentTimeZone || cachedDateFormat == null) {
             cachedLocale = currentLocale
             cachedTimeZone = currentTimeZone
-            cachedDateFormat = SimpleDateFormat("EEE, MMM d, yyyy", currentLocale).apply {
+            cachedDateFormat = SimpleDateFormat("MMM d, yyyy", currentLocale).apply {
                 timeZone = currentTimeZone
             }
             cachedDayFormat = SimpleDateFormat("EEEE", currentLocale).apply {

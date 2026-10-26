@@ -28,6 +28,7 @@ import com.esp32.smartpomodoro.ui.theme.*
 @Composable
 fun ClockCard(
     uiState: ClockUiState,
+    pomodoroStatus: PomodoroStatus? = null,
     onCycleRotation: () -> Unit,
     onSelectRotation: (ClockRotationAngle) -> Unit,
     onToggleOrientation: () -> Unit,
@@ -38,7 +39,8 @@ fun ClockCard(
     onToggleNightDimming: () -> Unit,
     onToggleFullScreen: () -> Unit,
     onOpenSettings: () -> Unit,
-    onCopyTime: () -> Unit
+    onCopyTime: () -> Unit,
+    onSwitchToPomodoro: (() -> Unit)? = null
 ) {
     val snapshot = uiState.snapshot
     val isLandscape = uiState.rotationAngle.isLandscape
@@ -335,6 +337,50 @@ fun ClockCard(
                             ),
                             color = uiState.effectiveSecondaryColor
                         )
+                    }
+
+                    // Active Pomodoro Tracker if running
+                    val isPomodoroRunning = pomodoroStatus != null && pomodoroStatus.parsedState != PomodoroState.IDLE
+                    if (isPomodoroRunning && pomodoroStatus != null) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        val pState = pomodoroStatus.parsedState
+                        val isWork = pState == PomodoroState.WORK
+                        val pColor = if (pomodoroStatus.isPaused) AccentAmber else if (isWork) AccentRed else AccentGreen
+                        val min = pomodoroStatus.remainingSec / 60
+                        val sec = pomodoroStatus.remainingSec % 60
+                        val timeStr = String.format("%02d:%02d", min, sec)
+                        val stateLabel = if (isWork) "FOCUS" else "BREAK"
+                        val statusText = if (pomodoroStatus.isPaused) "$stateLabel (PAUSED) $timeStr" else "$stateLabel $timeStr"
+
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = pColor.copy(alpha = 0.15f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, pColor.copy(alpha = 0.5f)),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable { onSwitchToPomodoro?.invoke() }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (pomodoroStatus.isPaused) Icons.Default.Pause else Icons.Default.HourglassTop,
+                                    contentDescription = "Pomodoro",
+                                    tint = pColor,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Text(
+                                    text = statusText,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp
+                                    ),
+                                    color = pColor
+                                )
+                            }
+                        }
                     }
                 }
             }
