@@ -12,3 +12,11 @@ build/
 .externalNativeBuild
 .cxx
 local.properties
+
+# Graphify
+graphify-out/
+.graphify*
+
+# OS files
+.DS_Store
+Thumbs.db
