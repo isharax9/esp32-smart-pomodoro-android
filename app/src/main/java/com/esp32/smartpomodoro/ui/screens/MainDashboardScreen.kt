@@ -1,5 +1,6 @@
 package com.esp32.smartpomodoro.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AvTimer
 import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,18 +24,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.esp32.smartpomodoro.ui.components.*
 import com.esp32.smartpomodoro.ui.theme.*
+import com.esp32.smartpomodoro.ui.viewmodel.ClockViewModel
 import com.esp32.smartpomodoro.ui.viewmodel.PomodoroViewModel
 import com.esp32.smartpomodoro.ui.viewmodel.StopwatchViewModel
 
 enum class DashboardTab(val title: String) {
     POMODORO("Focus Sprint"),
-    STOPWATCH("Giant Stopwatch")
+    STOPWATCH("Giant Stopwatch"),
+    CLOCK("Desk Clock")
 }
 
 @Composable
 fun MainDashboardScreen(
     pomodoroViewModel: PomodoroViewModel,
-    stopwatchViewModel: StopwatchViewModel? = null
+    stopwatchViewModel: StopwatchViewModel? = null,
+    clockViewModel: ClockViewModel? = null
 ) {
     val pomodoroUiState by pomodoroViewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
@@ -47,8 +52,46 @@ fun MainDashboardScreen(
         stopwatchViewModel?.setActiveTab(selectedTab.name)
     }
 
-    // Stopwatch state observation
+    // Stopwatch and Clock state observation
     val stopwatchUiState = stopwatchViewModel?.uiState?.collectAsState()?.value
+    val clockUiState = clockViewModel?.uiState?.collectAsState()?.value
+
+    // If Giant Clock is in full screen mode, show full-screen immersive view with BackHandler
+    if (clockUiState?.isFullScreen == true && clockViewModel != null) {
+        BackHandler {
+            clockViewModel.setFullScreen(false)
+        }
+        GiantClockFullScreen(
+            uiState = clockUiState,
+            onCycleRotation = { clockViewModel.cycleRotation() },
+            onSelectRotation = { clockViewModel.setRotationAngle(it) },
+            onToggleOrientation = { clockViewModel.toggleOrientation() },
+            onCycleTheme = { clockViewModel.cycleTheme() },
+            onToggleTimeFormat = { clockViewModel.toggleTimeFormat() },
+            onCycleSeconds = { clockViewModel.cycleSecondsDisplay() },
+            onToggleNightDimming = { clockViewModel.toggleNightDimming() },
+            onBrightnessChange = { clockViewModel.setBrightnessFactor(it) },
+            onExitFullScreen = { clockViewModel.setFullScreen(false) },
+            onOpenSettings = { clockViewModel.setShowSettingsDialog(true) }
+        )
+
+        // Settings Dialog accessible from Fullscreen as well
+        if (clockUiState.showSettingsDialog) {
+            ClockSettingsDialog(
+                uiState = clockUiState,
+                onTimeFormatChange = { clockViewModel.setTimeFormat(it) },
+                onSecondsDisplayChange = { clockViewModel.setSecondsDisplay(it) },
+                onToggleShowDate = { clockViewModel.toggleShowDate() },
+                onToggleBlinkingColon = { clockViewModel.toggleBlinkingColon() },
+                onToggleNightDimming = { clockViewModel.toggleNightDimming() },
+                onBrightnessChange = { clockViewModel.setBrightnessFactor(it) },
+                onToggleKeepScreenOn = { clockViewModel.toggleKeepScreenOn() },
+                onThemeSelect = { clockViewModel.setTheme(it) },
+                onDismiss = { clockViewModel.setShowSettingsDialog(false) }
+            )
+        }
+        return
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -70,8 +113,8 @@ fun MainDashboardScreen(
                 .background(BackgroundDark),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Dashboard Navigation Tab Switcher (Pomodoro Focus vs Giant Stopwatch)
-            if (stopwatchViewModel != null) {
+            // Dashboard Navigation Tab Switcher (Pomodoro Focus vs Giant Stopwatch vs Desk Clock)
+            if (stopwatchViewModel != null || clockViewModel != null) {
                 Surface(
                     color = SurfaceCard,
                     shape = RoundedCornerShape(16.dp),
@@ -85,7 +128,7 @@ fun MainDashboardScreen(
                             .padding(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        // Pomodoro Tab Pill
+                        // 1. Pomodoro Tab Pill
                         val isPomodoro = selectedTab == DashboardTab.POMODORO
                         Surface(
                             color = if (isPomodoro) AccentRed else Color.Transparent,
@@ -108,24 +151,24 @@ fun MainDashboardScreen(
                                     tint = if (isPomodoro) BackgroundDark else TextSecondary,
                                     modifier = Modifier.size(16.dp)
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "Focus Sprint",
+                                    text = "Focus",
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
+                                    fontSize = 12.sp,
                                     color = if (isPomodoro) BackgroundDark else TextSecondary
                                 )
                             }
                         }
 
-                        // Stopwatch Tab Pill (with active running badge)
+                        // 2. Stopwatch Tab Pill (with active running badge)
                         val isStopwatch = selectedTab == DashboardTab.STOPWATCH
                         val anyStopwatchRunning = stopwatchUiState?.slots?.any { it.isRunning } == true
                         Surface(
                             color = if (isStopwatch) AccentCyan else Color.Transparent,
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier
-                                .weight(1f)
+                                .weight(1.1f)
                                 .clip(RoundedCornerShape(12.dp))
                                 .clickable { selectedTab = DashboardTab.STOPWATCH }
                         ) {
@@ -142,22 +185,56 @@ fun MainDashboardScreen(
                                     tint = if (isStopwatch) BackgroundDark else TextSecondary,
                                     modifier = Modifier.size(16.dp)
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "Giant Stopwatch",
+                                    text = "Stopwatch",
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
+                                    fontSize = 12.sp,
                                     color = if (isStopwatch) BackgroundDark else TextSecondary
                                 )
                                 if (anyStopwatchRunning) {
-                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
                                     Box(
                                         modifier = Modifier
-                                            .size(7.dp)
+                                            .size(6.dp)
                                             .clip(RoundedCornerShape(4.dp))
                                             .background(if (isStopwatch) BackgroundDark else AccentGreen)
                                     )
                                 }
+                            }
+                        }
+
+                        // 3. Giant Desk Clock Tab Pill
+                        val isClock = selectedTab == DashboardTab.CLOCK
+                        val clockThemeColor = clockUiState?.theme?.primaryColor ?: AccentAmber
+                        Surface(
+                            color = if (isClock) clockThemeColor else Color.Transparent,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { selectedTab = DashboardTab.CLOCK }
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .padding(vertical = 10.dp)
+                                    .fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Schedule,
+                                    contentDescription = "Desk Clock",
+                                    tint = if (isClock) BackgroundDark else TextSecondary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Clock",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = if (isClock) BackgroundDark else TextSecondary
+                                )
                             }
                         }
                     }
@@ -240,6 +317,24 @@ fun MainDashboardScreen(
                         }
                     }
                 }
+
+                DashboardTab.CLOCK -> {
+                    if (clockViewModel != null && clockUiState != null) {
+                        ClockCard(
+                            uiState = clockUiState,
+                            onCycleRotation = { clockViewModel.cycleRotation() },
+                            onSelectRotation = { clockViewModel.setRotationAngle(it) },
+                            onToggleOrientation = { clockViewModel.toggleOrientation() },
+                            onCycleTheme = { clockViewModel.cycleTheme() },
+                            onToggleTimeFormat = { clockViewModel.toggleTimeFormat() },
+                            onCycleSeconds = { clockViewModel.cycleSecondsDisplay() },
+                            onToggleNightDimming = { clockViewModel.toggleNightDimming() },
+                            onToggleFullScreen = { clockViewModel.setFullScreen(true) },
+                            onOpenSettings = { clockViewModel.setShowSettingsDialog(true) },
+                            onCopyTime = { clockViewModel.copyCurrentTimeToClipboard(context) }
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -260,6 +355,22 @@ fun MainDashboardScreen(
             CalibrationDialog(
                 onDismiss = { pomodoroViewModel.setShowCalibrationDialog(false) },
                 onCalibrate = { strip, action -> pomodoroViewModel.calibrateStrip(strip, action) }
+            )
+        }
+
+        // Clock Settings Configuration Modal
+        if (clockUiState?.showSettingsDialog == true && clockViewModel != null) {
+            ClockSettingsDialog(
+                uiState = clockUiState,
+                onTimeFormatChange = { clockViewModel.setTimeFormat(it) },
+                onSecondsDisplayChange = { clockViewModel.setSecondsDisplay(it) },
+                onToggleShowDate = { clockViewModel.toggleShowDate() },
+                onToggleBlinkingColon = { clockViewModel.toggleBlinkingColon() },
+                onToggleNightDimming = { clockViewModel.toggleNightDimming() },
+                onBrightnessChange = { clockViewModel.setBrightnessFactor(it) },
+                onToggleKeepScreenOn = { clockViewModel.toggleKeepScreenOn() },
+                onThemeSelect = { clockViewModel.setTheme(it) },
+                onDismiss = { clockViewModel.setShowSettingsDialog(false) }
             )
         }
     }

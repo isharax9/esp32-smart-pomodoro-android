@@ -5,15 +5,20 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
 import com.esp32.smartpomodoro.ui.screens.MainDashboardScreen
 import com.esp32.smartpomodoro.ui.theme.SmartPomodoroTheme
+import com.esp32.smartpomodoro.ui.viewmodel.ClockViewModel
+import com.esp32.smartpomodoro.ui.viewmodel.ClockViewModelFactory
 import com.esp32.smartpomodoro.ui.viewmodel.PomodoroViewModel
 import com.esp32.smartpomodoro.ui.viewmodel.PomodoroViewModelFactory
 import com.esp32.smartpomodoro.ui.viewmodel.StopwatchViewModel
@@ -29,6 +34,11 @@ class MainActivity : ComponentActivity() {
     private val stopwatchViewModel: StopwatchViewModel by viewModels {
         val app = application as SmartPomodoroApp
         StopwatchViewModelFactory(app.stopwatchEngine, app.stopwatchFeedbackHelper, applicationContext)
+    }
+
+    private val clockViewModel: ClockViewModel by viewModels {
+        val app = application as SmartPomodoroApp
+        ClockViewModelFactory(app.clockEngine, applicationContext)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,9 +63,20 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                // Keep screen awake if configured in desk clock
+                val clockUiState by clockViewModel.uiState.collectAsState()
+                LaunchedEffect(clockUiState.keepScreenOn) {
+                    if (clockUiState.keepScreenOn) {
+                        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    } else {
+                        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    }
+                }
+
                 MainDashboardScreen(
                     pomodoroViewModel = pomodoroViewModel,
-                    stopwatchViewModel = stopwatchViewModel
+                    stopwatchViewModel = stopwatchViewModel,
+                    clockViewModel = clockViewModel
                 )
             }
         }

@@ -1,0 +1,216 @@
+package com.esp32.smartpomodoro.ui.viewmodel
+
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import com.esp32.smartpomodoro.data.clock.ClockEngine
+import com.esp32.smartpomodoro.data.model.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+
+class ClockViewModel(
+    val engine: ClockEngine = ClockEngine(),
+    private val appContext: Context? = null,
+    private val externalScope: CoroutineScope? = null,
+    autoStartTicker: Boolean = true
+) : ViewModel() {
+
+    private val scope: CoroutineScope
+        get() = externalScope ?: viewModelScope
+
+    private val _uiState = MutableStateFlow(
+        ClockUiState(
+            timeFormat = engine.timeFormat,
+            secondsDisplay = engine.secondsDisplay,
+            showDate = engine.showDate,
+            blinkingColon = engine.blinkingColon,
+            rotationAngle = engine.rotationAngle,
+            theme = engine.theme,
+            nightDimming = engine.nightDimming,
+            brightnessFactor = engine.brightnessFactor,
+            keepScreenOn = engine.keepScreenOn,
+            isFullScreen = engine.isFullScreen,
+            snapshot = engine.createSnapshot()
+        )
+    )
+    val uiState: StateFlow<ClockUiState> = _uiState.asStateFlow()
+
+    private var tickerJob: Job? = null
+
+    init {
+        if (autoStartTicker) {
+            startTicker()
+        }
+    }
+
+    fun startTicker() {
+        tickerJob?.cancel()
+        tickerJob = scope.launch {
+            while (isActive) {
+                syncSnapshot()
+                // 200ms tick interval ensures accurate 500ms colon blink and crisp seconds update
+                delay(200L)
+            }
+        }
+    }
+
+    fun syncSnapshot() {
+        val snapshot = engine.createSnapshot()
+        _uiState.update { current ->
+            current.copy(
+                snapshot = snapshot,
+                timeFormat = engine.timeFormat,
+                secondsDisplay = engine.secondsDisplay,
+                showDate = engine.showDate,
+                blinkingColon = engine.blinkingColon,
+                rotationAngle = engine.rotationAngle,
+                theme = engine.theme,
+                nightDimming = engine.nightDimming,
+                brightnessFactor = engine.brightnessFactor,
+                keepScreenOn = engine.keepScreenOn,
+                isFullScreen = engine.isFullScreen
+            )
+        }
+    }
+
+    fun cycleRotation() {
+        engine.cycleRotation()
+        syncSnapshot()
+    }
+
+    fun toggleOrientation() {
+        engine.toggleOrientation()
+        syncSnapshot()
+    }
+
+    fun setRotationAngle(angle: ClockRotationAngle) {
+        engine.rotationAngle = angle
+        syncSnapshot()
+    }
+
+    fun cycleTheme() {
+        engine.cycleTheme()
+        syncSnapshot()
+    }
+
+    fun setTheme(theme: ClockTheme) {
+        engine.theme = theme
+        syncSnapshot()
+    }
+
+    fun cycleSecondsDisplay() {
+        engine.cycleSecondsDisplay()
+        syncSnapshot()
+    }
+
+    fun setSecondsDisplay(display: ClockSecondsDisplay) {
+        engine.secondsDisplay = display
+        syncSnapshot()
+    }
+
+    fun toggleTimeFormat() {
+        engine.toggleTimeFormat()
+        syncSnapshot()
+    }
+
+    fun setTimeFormat(format: ClockTimeFormat) {
+        engine.timeFormat = format
+        syncSnapshot()
+    }
+
+    fun toggleShowDate() {
+        engine.showDate = !engine.showDate
+        syncSnapshot()
+    }
+
+    fun setShowDate(show: Boolean) {
+        engine.showDate = show
+        syncSnapshot()
+    }
+
+    fun toggleBlinkingColon() {
+        engine.blinkingColon = !engine.blinkingColon
+        syncSnapshot()
+    }
+
+    fun setBlinkingColon(blink: Boolean) {
+        engine.blinkingColon = blink
+        syncSnapshot()
+    }
+
+    fun toggleNightDimming() {
+        engine.nightDimming = !engine.nightDimming
+        syncSnapshot()
+    }
+
+    fun setNightDimming(enabled: Boolean) {
+        engine.nightDimming = enabled
+        syncSnapshot()
+    }
+
+    fun setBrightnessFactor(factor: Float) {
+        engine.brightnessFactor = factor.coerceIn(0.1f, 1.0f)
+        syncSnapshot()
+    }
+
+    fun toggleKeepScreenOn() {
+        engine.keepScreenOn = !engine.keepScreenOn
+        syncSnapshot()
+    }
+
+    fun setKeepScreenOn(keep: Boolean) {
+        engine.keepScreenOn = keep
+        syncSnapshot()
+    }
+
+    fun setFullScreen(fullScreen: Boolean) {
+        engine.isFullScreen = fullScreen
+        syncSnapshot()
+    }
+
+    fun toggleFullScreen() {
+        engine.isFullScreen = !engine.isFullScreen
+        syncSnapshot()
+    }
+
+    fun setShowSettingsDialog(show: Boolean) {
+        _uiState.update { it.copy(showSettingsDialog = show) }
+    }
+
+    fun copyCurrentTimeToClipboard(context: Context? = appContext) {
+        val targetContext = context ?: appContext ?: return
+        val text = engine.createSnapshot().fullTimeFormatted
+        val clipboard = targetContext.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+        val clip = ClipData.newPlainText("Clock Time", text)
+        clipboard?.setPrimaryClip(clip)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        tickerJob?.cancel()
+        tickerJob = null
+    }
+}
+
+class ClockViewModelFactory(
+    private val engine: ClockEngine,
+    private val appContext: Context? = null
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(ClockViewModel::class.java)) {
+            return ClockViewModel(engine, appContext) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+    }
+}
