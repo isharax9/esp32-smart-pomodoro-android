@@ -221,4 +221,24 @@ class ClockEngineTest {
         assertEquals(ClockTimeFormat.TWENTY_FOUR_HOUR, engine.toggleTimeFormat())
         assertEquals(ClockTimeFormat.TWELVE_HOUR, engine.toggleTimeFormat())
     }
+
+    @Test
+    fun testAutoRotateTogglingAndResetOnManual() {
+        assertFalse(engine.isAutoRotate)
+        assertTrue(engine.toggleAutoRotate())
+        assertTrue(engine.isAutoRotate)
+        assertFalse(engine.toggleAutoRotate())
+        assertFalse(engine.isAutoRotate)
+
+        engine.isAutoRotate = true
+        assertTrue(engine.isAutoRotate)
+
+        // Manual rotation cycling should disengage auto-rotate and lock orientation
+        engine.cycleRotation()
+        assertFalse(engine.isAutoRotate)
+
+        engine.isAutoRotate = true
+        engine.toggleOrientation()
+        assertFalse(engine.isAutoRotate)
+    }
 }

@@ -57,7 +57,7 @@ fun MainDashboardScreen(
     val clockUiState = clockViewModel?.uiState?.collectAsState()?.value
 
     // If Giant Clock is in full screen mode, show full-screen immersive view with BackHandler
-    if (clockUiState?.isFullScreen == true && clockViewModel != null) {
+    if (clockUiState?.isFullScreen == true) {
         BackHandler {
             clockViewModel.setFullScreen(false)
         }
@@ -66,6 +66,11 @@ fun MainDashboardScreen(
             onCycleRotation = { clockViewModel.cycleRotation() },
             onSelectRotation = { clockViewModel.setRotationAngle(it) },
             onToggleOrientation = { clockViewModel.toggleOrientation() },
+            onToggleAutoRotate = { clockViewModel.toggleAutoRotate() },
+            onSwitchToStopwatch = {
+                clockViewModel.setFullScreen(false)
+                selectedTab = DashboardTab.STOPWATCH
+            },
             onCycleTheme = { clockViewModel.cycleTheme() },
             onToggleTimeFormat = { clockViewModel.toggleTimeFormat() },
             onCycleSeconds = { clockViewModel.cycleSecondsDisplay() },
@@ -83,6 +88,9 @@ fun MainDashboardScreen(
                 onSecondsDisplayChange = { clockViewModel.setSecondsDisplay(it) },
                 onToggleShowDate = { clockViewModel.toggleShowDate() },
                 onToggleBlinkingColon = { clockViewModel.toggleBlinkingColon() },
+                onToggleAutoRotate = { clockViewModel.toggleAutoRotate() },
+                onSelectRotation = { clockViewModel.setRotationAngle(it) },
+                onToggleOrientation = { clockViewModel.toggleOrientation() },
                 onToggleNightDimming = { clockViewModel.toggleNightDimming() },
                 onBrightnessChange = { clockViewModel.setBrightnessFactor(it) },
                 onToggleKeepScreenOn = { clockViewModel.toggleKeepScreenOn() },
@@ -325,6 +333,7 @@ fun MainDashboardScreen(
                             onCycleRotation = { clockViewModel.cycleRotation() },
                             onSelectRotation = { clockViewModel.setRotationAngle(it) },
                             onToggleOrientation = { clockViewModel.toggleOrientation() },
+                            onToggleAutoRotate = { clockViewModel.toggleAutoRotate() },
                             onCycleTheme = { clockViewModel.cycleTheme() },
                             onToggleTimeFormat = { clockViewModel.toggleTimeFormat() },
                             onCycleSeconds = { clockViewModel.cycleSecondsDisplay() },
@@ -359,13 +368,16 @@ fun MainDashboardScreen(
         }
 
         // Clock Settings Configuration Modal
-        if (clockUiState?.showSettingsDialog == true && clockViewModel != null) {
+        if (clockUiState?.showSettingsDialog == true) {
             ClockSettingsDialog(
                 uiState = clockUiState,
                 onTimeFormatChange = { clockViewModel.setTimeFormat(it) },
                 onSecondsDisplayChange = { clockViewModel.setSecondsDisplay(it) },
                 onToggleShowDate = { clockViewModel.toggleShowDate() },
                 onToggleBlinkingColon = { clockViewModel.toggleBlinkingColon() },
+                onToggleAutoRotate = { clockViewModel.toggleAutoRotate() },
+                onSelectRotation = { clockViewModel.setRotationAngle(it) },
+                onToggleOrientation = { clockViewModel.toggleOrientation() },
                 onToggleNightDimming = { clockViewModel.toggleNightDimming() },
                 onBrightnessChange = { clockViewModel.setBrightnessFactor(it) },
                 onToggleKeepScreenOn = { clockViewModel.toggleKeepScreenOn() },

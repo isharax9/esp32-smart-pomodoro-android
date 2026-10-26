@@ -29,6 +29,7 @@ class ClockViewModelTest {
         assertEquals(ClockSecondsDisplay.SMALL, state.secondsDisplay)
         assertTrue(state.showDate)
         assertTrue(state.blinkingColon)
+        assertFalse(state.isAutoRotate)
         assertEquals(ClockRotationAngle.ROTATION_0, state.rotationAngle)
         assertEquals(ClockTheme.AMBER_NIGHT, state.theme)
         assertFalse(state.nightDimming)
@@ -55,6 +56,32 @@ class ClockViewModelTest {
 
         viewModel.toggleOrientation() // 0 (portrait) -> 90 (landscape)
         assertEquals(ClockRotationAngle.ROTATION_90, viewModel.uiState.value.rotationAngle)
+    }
+
+    @Test
+    fun testAutoRotateAndSensorOrientationHandling() {
+        assertFalse(viewModel.uiState.value.isAutoRotate)
+        viewModel.toggleAutoRotate()
+        assertTrue(viewModel.uiState.value.isAutoRotate)
+
+        // Sensor update should apply when autoRotate is enabled
+        viewModel.onSensorOrientationChanged(ClockRotationAngle.ROTATION_90)
+        assertEquals(ClockRotationAngle.ROTATION_90, viewModel.uiState.value.rotationAngle)
+
+        // Selecting a manual angle should lock orientation and disable auto-rotate
+        viewModel.setRotationAngle(ClockRotationAngle.ROTATION_180)
+        assertFalse(viewModel.uiState.value.isAutoRotate)
+        assertEquals(ClockRotationAngle.ROTATION_180, viewModel.uiState.value.rotationAngle)
+
+        // Sensor update should NOT apply when auto-rotate is disabled
+        viewModel.onSensorOrientationChanged(ClockRotationAngle.ROTATION_270)
+        assertEquals(ClockRotationAngle.ROTATION_180, viewModel.uiState.value.rotationAngle)
+
+        // Re-enabling auto-rotate accepts sensor updates again
+        viewModel.setAutoRotate(true)
+        assertTrue(viewModel.uiState.value.isAutoRotate)
+        viewModel.onSensorOrientationChanged(ClockRotationAngle.ROTATION_270)
+        assertEquals(ClockRotationAngle.ROTATION_270, viewModel.uiState.value.rotationAngle)
     }
 
     @Test

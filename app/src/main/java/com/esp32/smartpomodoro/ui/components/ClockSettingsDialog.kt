@@ -33,6 +33,9 @@ fun ClockSettingsDialog(
     onSecondsDisplayChange: (ClockSecondsDisplay) -> Unit,
     onToggleShowDate: () -> Unit,
     onToggleBlinkingColon: () -> Unit,
+    onToggleAutoRotate: () -> Unit = {},
+    onSelectRotation: (ClockRotationAngle) -> Unit = {},
+    onToggleOrientation: () -> Unit = {},
     onToggleNightDimming: () -> Unit,
     onBrightnessChange: (Float) -> Unit,
     onToggleKeepScreenOn: () -> Unit,
@@ -225,7 +228,77 @@ fun ClockSettingsDialog(
                     )
                 }
 
-                // 4. Night Mode Dimming & Brightness
+                // 4. Orientation & Multi-Angle Rotation
+                HorizontalDivider(color = SurfaceCardBorder)
+                Text(
+                    text = "ORIENTATION & ROTATION",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    color = TextSecondary
+                )
+
+                // Auto-Rotate Switch
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Auto-Rotate (Follow Sensor)", color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                        Text("Automatically rotate clock when device turns", color = TextMuted, fontSize = 12.sp)
+                    }
+                    Switch(
+                        checked = uiState.isAutoRotate,
+                        onCheckedChange = { onToggleAutoRotate() },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = BackgroundDark,
+                            checkedTrackColor = uiState.theme.primaryColor
+                        )
+                    )
+                }
+
+                // Screen Angle Selection Pills & Toggle Button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ClockRotationAngle.entries.forEach { angle ->
+                        val isSelected = !uiState.isAutoRotate && uiState.rotationAngle == angle
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isSelected) uiState.theme.primaryColor else SurfaceDark,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable { onSelectRotation(angle) }
+                        ) {
+                            Text(
+                                text = "${angle.degrees}°",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                color = if (isSelected) BackgroundDark else TextSecondary,
+                                modifier = Modifier
+                                    .padding(vertical = 8.dp)
+                                    .fillMaxWidth(),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                    }
+
+                    // Quick Toggle Orientation Button
+                    IconButton(
+                        onClick = onToggleOrientation,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ScreenRotation,
+                            contentDescription = "Toggle Orientation",
+                            tint = uiState.theme.primaryColor,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                // 5. Night Mode Dimming & Brightness
                 HorizontalDivider(color = SurfaceCardBorder)
                 Row(
                     modifier = Modifier.fillMaxWidth(),

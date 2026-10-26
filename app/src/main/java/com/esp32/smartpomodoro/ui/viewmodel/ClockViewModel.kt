@@ -34,6 +34,7 @@ class ClockViewModel(
             secondsDisplay = engine.secondsDisplay,
             showDate = engine.showDate,
             blinkingColon = engine.blinkingColon,
+            isAutoRotate = engine.isAutoRotate,
             rotationAngle = engine.rotationAngle,
             theme = engine.theme,
             nightDimming = engine.nightDimming,
@@ -73,6 +74,7 @@ class ClockViewModel(
                 secondsDisplay = engine.secondsDisplay,
                 showDate = engine.showDate,
                 blinkingColon = engine.blinkingColon,
+                isAutoRotate = engine.isAutoRotate,
                 rotationAngle = engine.rotationAngle,
                 theme = engine.theme,
                 nightDimming = engine.nightDimming,
@@ -93,7 +95,25 @@ class ClockViewModel(
         syncSnapshot()
     }
 
+    fun toggleAutoRotate() {
+        engine.toggleAutoRotate()
+        syncSnapshot()
+    }
+
+    fun setAutoRotate(enabled: Boolean) {
+        engine.isAutoRotate = enabled
+        syncSnapshot()
+    }
+
+    fun onSensorOrientationChanged(angle: ClockRotationAngle) {
+        if (engine.isAutoRotate && engine.rotationAngle != angle) {
+            engine.rotationAngle = angle
+            syncSnapshot()
+        }
+    }
+
     fun setRotationAngle(angle: ClockRotationAngle) {
+        engine.isAutoRotate = false
         engine.rotationAngle = angle
         syncSnapshot()
     }

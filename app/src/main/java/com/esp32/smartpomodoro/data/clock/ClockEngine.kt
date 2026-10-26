@@ -34,6 +34,7 @@ class ClockEngine(
     var secondsDisplay: ClockSecondsDisplay = ClockSecondsDisplay.SMALL
     var showDate: Boolean = true
     var blinkingColon: Boolean = true
+    var isAutoRotate: Boolean = false
     var rotationAngle: ClockRotationAngle = ClockRotationAngle.ROTATION_0
     var theme: ClockTheme = ClockTheme.AMBER_NIGHT
     var nightDimming: Boolean = false
@@ -104,13 +105,20 @@ class ClockEngine(
     }
 
     fun cycleRotation(): ClockRotationAngle {
+        isAutoRotate = false
         rotationAngle = rotationAngle.next()
         return rotationAngle
     }
 
     fun toggleOrientation(): ClockRotationAngle {
+        isAutoRotate = false
         rotationAngle = rotationAngle.toggleOrientation()
         return rotationAngle
+    }
+
+    fun toggleAutoRotate(): Boolean {
+        isAutoRotate = !isAutoRotate
+        return isAutoRotate
     }
 
     fun cycleTheme(): ClockTheme {

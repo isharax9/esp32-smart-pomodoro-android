@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.RotateRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -30,6 +31,7 @@ fun ClockCard(
     onCycleRotation: () -> Unit,
     onSelectRotation: (ClockRotationAngle) -> Unit,
     onToggleOrientation: () -> Unit,
+    onToggleAutoRotate: () -> Unit = {},
     onCycleTheme: () -> Unit,
     onToggleTimeFormat: () -> Unit,
     onCycleSeconds: () -> Unit,
@@ -62,13 +64,31 @@ fun ClockCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Multi-Orientation Angle Selector (0°, 90°, 180°, 270°)
+                // Multi-Orientation Angle Selector (Auto, 0°, 90°, 180°, 270°) and orientation toggles
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Auto-Rotate pill
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (uiState.isAutoRotate) uiState.theme.primaryColor else SurfaceDark,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onToggleAutoRotate() }
+                    ) {
+                        Text(
+                            text = "Auto",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = if (uiState.isAutoRotate) FontWeight.Bold else FontWeight.Normal
+                            ),
+                            color = if (uiState.isAutoRotate) BackgroundDark else TextSecondary,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 5.dp)
+                        )
+                    }
+
                     ClockRotationAngle.entries.forEach { angle ->
-                        val isSelected = uiState.rotationAngle == angle
+                        val isSelected = !uiState.isAutoRotate && uiState.rotationAngle == angle
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = if (isSelected) uiState.theme.primaryColor else SurfaceDark,
@@ -82,7 +102,7 @@ fun ClockCard(
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                 ),
                                 color = if (isSelected) BackgroundDark else TextSecondary,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 5.dp)
                             )
                         }
                     }
@@ -90,13 +110,26 @@ fun ClockCard(
                     // Quick Rotate 90° button
                     IconButton(
                         onClick = onCycleRotation,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(30.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.RotateRight,
+                            imageVector = Icons.AutoMirrored.Filled.RotateRight,
                             contentDescription = "Rotate 90°",
                             tint = uiState.theme.primaryColor,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(17.dp)
+                        )
+                    }
+
+                    // Orientation toggle (Landscape / Portrait) button
+                    IconButton(
+                        onClick = onToggleOrientation,
+                        modifier = Modifier.size(30.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ScreenRotation,
+                            contentDescription = "Toggle Landscape/Portrait",
+                            tint = if (uiState.rotationAngle.isLandscape) uiState.theme.primaryColor else TextSecondary,
+                            modifier = Modifier.size(17.dp)
                         )
                     }
                 }
@@ -155,10 +188,20 @@ fun ClockCard(
             HorizontalDivider(color = SurfaceCardBorder)
 
             // 2. GIANT TIME READOUT CONTAINER (Interactive: tap to expand fullscreen)
+            val digitFontSize = when {
+                isLandscape && uiState.secondsDisplay == ClockSecondsDisplay.BIG -> 24.sp
+                isLandscape -> 34.sp
+                uiState.secondsDisplay == ClockSecondsDisplay.BIG -> 42.sp
+                else -> 56.sp
+            }
+            val smallSecFontSize = if (isLandscape) 16.sp else 24.sp
+            val amPmFontSize = if (isLandscape) 9.sp else 11.sp
+            val dateFontSize = if (isLandscape) 11.sp else 13.sp
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(if (isLandscape) 200.dp else 160.dp)
+                    .height(if (isLandscape) 210.dp else 160.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color.Black.copy(alpha = 0.4f))
                     .clickable { onToggleFullScreen() }
@@ -182,7 +225,7 @@ fun ClockCard(
                             text = snapshot.hours,
                             style = MaterialTheme.typography.displayLarge.copy(
                                 fontWeight = FontWeight.Black,
-                                fontSize = if (uiState.secondsDisplay == ClockSecondsDisplay.BIG) 44.sp else 58.sp,
+                                fontSize = digitFontSize,
                                 fontFamily = FontFamily.Monospace,
                                 letterSpacing = (-1).sp
                             ),
@@ -194,7 +237,7 @@ fun ClockCard(
                             text = ":",
                             style = MaterialTheme.typography.displayLarge.copy(
                                 fontWeight = FontWeight.Black,
-                                fontSize = if (uiState.secondsDisplay == ClockSecondsDisplay.BIG) 44.sp else 58.sp,
+                                fontSize = digitFontSize,
                                 fontFamily = FontFamily.Monospace
                             ),
                             color = if (snapshot.colonVisible) uiState.effectiveColor else Color.Transparent,
@@ -206,7 +249,7 @@ fun ClockCard(
                             text = snapshot.minutes,
                             style = MaterialTheme.typography.displayLarge.copy(
                                 fontWeight = FontWeight.Black,
-                                fontSize = if (uiState.secondsDisplay == ClockSecondsDisplay.BIG) 44.sp else 58.sp,
+                                fontSize = digitFontSize,
                                 fontFamily = FontFamily.Monospace,
                                 letterSpacing = (-1).sp
                             ),
@@ -220,7 +263,7 @@ fun ClockCard(
                                     text = ":",
                                     style = MaterialTheme.typography.displayLarge.copy(
                                         fontWeight = FontWeight.Black,
-                                        fontSize = 44.sp,
+                                        fontSize = digitFontSize,
                                         fontFamily = FontFamily.Monospace
                                     ),
                                     color = if (snapshot.colonVisible) uiState.effectiveColor else Color.Transparent,
@@ -230,7 +273,7 @@ fun ClockCard(
                                     text = snapshot.seconds,
                                     style = MaterialTheme.typography.displayLarge.copy(
                                         fontWeight = FontWeight.Black,
-                                        fontSize = 44.sp,
+                                        fontSize = digitFontSize,
                                         fontFamily = FontFamily.Monospace
                                     ),
                                     color = uiState.effectiveSecondaryColor
@@ -241,11 +284,11 @@ fun ClockCard(
                                     text = snapshot.seconds,
                                     style = MaterialTheme.typography.titleLarge.copy(
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 24.sp,
+                                        fontSize = smallSecFontSize,
                                         fontFamily = FontFamily.Monospace
                                     ),
                                     color = uiState.effectiveSecondaryColor,
-                                    modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
+                                    modifier = Modifier.padding(bottom = if (isLandscape) 4.dp else 8.dp, start = 4.dp)
                                 )
                             }
                             ClockSecondsDisplay.NONE -> {
@@ -259,11 +302,14 @@ fun ClockCard(
                                 shape = RoundedCornerShape(6.dp),
                                 color = uiState.effectiveColor.copy(alpha = 0.15f),
                                 modifier = Modifier
-                                    .padding(bottom = 10.dp, start = 6.dp)
+                                    .padding(bottom = if (isLandscape) 6.dp else 10.dp, start = 6.dp)
                             ) {
                                 Text(
                                     text = snapshot.amPm,
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = amPmFontSize
+                                    ),
                                     color = uiState.effectiveColor,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
@@ -278,7 +324,7 @@ fun ClockCard(
                             text = "${snapshot.dayOfWeek}, ${snapshot.dateFormatted}",
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontWeight = FontWeight.Medium,
-                                fontSize = 13.sp
+                                fontSize = dateFontSize
                             ),
                             color = uiState.effectiveSecondaryColor
                         )

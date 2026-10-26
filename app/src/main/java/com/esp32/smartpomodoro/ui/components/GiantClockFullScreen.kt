@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.RotateRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,6 +36,8 @@ fun GiantClockFullScreen(
     onCycleRotation: () -> Unit,
     onSelectRotation: (ClockRotationAngle) -> Unit,
     onToggleOrientation: () -> Unit,
+    onToggleAutoRotate: () -> Unit = {},
+    onSwitchToStopwatch: (() -> Unit)? = null,
     onCycleTheme: () -> Unit,
     onToggleTimeFormat: () -> Unit,
     onCycleSeconds: () -> Unit,
@@ -85,15 +88,17 @@ fun GiantClockFullScreen(
         val contentWidth = if (isLandscape) screenH else screenW
         val contentHeight = if (isLandscape) screenW else screenH
 
-        // Responsive auto-scaling typography calculation
+        // Responsive auto-scaling typography calculation (constrained by width and height to prevent clipping)
         val digitScale = when {
             uiState.secondsDisplay == ClockSecondsDisplay.BIG -> 0.14f
             else -> 0.22f
         }
-        val computedFontSize = (contentWidth.value * digitScale).coerceIn(48f, 220f).sp
-        val smallSecFontSize = (computedFontSize.value * 0.42f).coerceIn(20f, 90f).sp
-        val amPmFontSize = (computedFontSize.value * 0.25f).coerceIn(14f, 40f).sp
-        val dateFontSize = (contentWidth.value * 0.045f).coerceIn(13f, 32f).sp
+        val maxFontFromWidth = contentWidth.value * digitScale
+        val maxFontFromHeight = contentHeight.value * 0.52f
+        val computedFontSize = minOf(maxFontFromWidth, maxFontFromHeight).coerceIn(36f, 220f).sp
+        val smallSecFontSize = (computedFontSize.value * 0.42f).coerceIn(18f, 90f).sp
+        val amPmFontSize = (computedFontSize.value * 0.25f).coerceIn(12f, 40f).sp
+        val dateFontSize = minOf(contentWidth.value * 0.045f, contentHeight.value * 0.08f).coerceIn(12f, 32f).sp
 
         // Central Giant Digits with Rotation
         Box(
@@ -105,6 +110,7 @@ fun GiantClockFullScreen(
                 verticalArrangement = Arrangement.Center,
                 modifier = Modifier
                     .size(width = contentWidth, height = contentHeight)
+                    .safeDrawingPadding()
                     .graphicsLayer {
                         rotationZ = uiState.rotationAngle.degrees.toFloat()
                     }
@@ -267,13 +273,34 @@ fun GiantClockFullScreen(
                         )
                     }
 
-                    // Multi-Orientation Angle Selector (0°, 90°, 180°, 270°)
+                    // Multi-Orientation Controls (Auto, 0°, 90°, 180°, 270°, Rotate, Toggle)
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // Auto-Rotate pill
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (uiState.isAutoRotate) uiState.theme.primaryColor else SurfaceDark,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable {
+                                    userInteractionTimestamp = System.currentTimeMillis()
+                                    onToggleAutoRotate()
+                                }
+                        ) {
+                            Text(
+                                text = "Auto",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = if (uiState.isAutoRotate) FontWeight.Bold else FontWeight.Normal
+                                ),
+                                color = if (uiState.isAutoRotate) BackgroundDark else TextSecondary,
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 5.dp)
+                            )
+                        }
+
                         ClockRotationAngle.entries.forEach { angle ->
-                            val isSelected = uiState.rotationAngle == angle
+                            val isSelected = !uiState.isAutoRotate && uiState.rotationAngle == angle
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
                                 color = if (isSelected) uiState.theme.primaryColor else SurfaceDark,
@@ -290,7 +317,7 @@ fun GiantClockFullScreen(
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                     ),
                                     color = if (isSelected) BackgroundDark else TextSecondary,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
+                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 5.dp)
                                 )
                             }
                         }
@@ -304,19 +331,53 @@ fun GiantClockFullScreen(
                             modifier = Modifier.size(32.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.RotateRight,
-                                contentDescription = "Rotate",
+                                imageVector = Icons.AutoMirrored.Filled.RotateRight,
+                                contentDescription = "Rotate 90°",
                                 tint = uiState.theme.primaryColor,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(19.dp)
+                            )
+                        }
+
+                        // Orientation toggle (Portrait / Landscape) button
+                        IconButton(
+                            onClick = {
+                                userInteractionTimestamp = System.currentTimeMillis()
+                                onToggleOrientation()
+                            },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ScreenRotation,
+                                contentDescription = "Toggle Landscape/Portrait",
+                                tint = if (uiState.rotationAngle.isLandscape) uiState.theme.primaryColor else TextSecondary,
+                                modifier = Modifier.size(19.dp)
                             )
                         }
                     }
 
-                    // Theme & Settings
+                    // Actions: Stopwatch switch, Theme & Settings
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // Quick switch to Giant Stopwatch
+                        if (onSwitchToStopwatch != null) {
+                            IconButton(
+                                onClick = {
+                                    userInteractionTimestamp = System.currentTimeMillis()
+                                    onSwitchToStopwatch()
+                                },
+                                modifier = Modifier.size(34.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AvTimer,
+                                    contentDescription = "Switch to Stopwatch",
+                                    tint = AccentCyan,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+
                         // Quick Theme Cycle
                         Box(
                             modifier = Modifier
@@ -344,7 +405,7 @@ fun GiantClockFullScreen(
                                 userInteractionTimestamp = System.currentTimeMillis()
                                 onOpenSettings()
                             },
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(34.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Settings,
