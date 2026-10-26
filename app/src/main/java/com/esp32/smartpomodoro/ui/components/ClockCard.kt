@@ -189,31 +189,38 @@ fun ClockCard(
 
             // 2. GIANT TIME READOUT CONTAINER (Interactive: tap to expand fullscreen)
             val digitFontSize = when {
-                isLandscape && uiState.secondsDisplay == ClockSecondsDisplay.BIG -> 24.sp
-                isLandscape -> 34.sp
-                uiState.secondsDisplay == ClockSecondsDisplay.BIG -> 42.sp
-                else -> 56.sp
+                isLandscape && uiState.secondsDisplay == ClockSecondsDisplay.BIG -> 22.sp
+                isLandscape -> 30.sp
+                uiState.secondsDisplay == ClockSecondsDisplay.BIG -> 40.sp
+                else -> 52.sp
             }
-            val smallSecFontSize = if (isLandscape) 16.sp else 24.sp
+            val smallSecFontSize = if (isLandscape) 14.sp else 22.sp
             val amPmFontSize = if (isLandscape) 9.sp else 11.sp
-            val dateFontSize = if (isLandscape) 11.sp else 13.sp
+            val dateFontSize = if (isLandscape) 10.sp else 12.sp
 
-            Box(
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(if (isLandscape) 210.dp else 160.dp)
+                    .height(if (isLandscape) 220.dp else 160.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color.Black.copy(alpha = 0.4f))
                     .clickable { onToggleFullScreen() }
-                    .padding(12.dp),
+                    .padding(8.dp),
                 contentAlignment = Alignment.Center
             ) {
+                val boxW = maxWidth
+                val boxH = maxHeight
+                val contentW = if (isLandscape) boxH else boxW
+                val contentH = if (isLandscape) boxW else boxH
+
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.graphicsLayer {
-                        rotationZ = uiState.rotationAngle.degrees.toFloat()
-                    }
+                    modifier = Modifier
+                        .size(width = contentW, height = contentH)
+                        .graphicsLayer {
+                            rotationZ = uiState.rotationAngle.degrees.toFloat()
+                        }
                 ) {
                     // Time Digits Row
                     Row(

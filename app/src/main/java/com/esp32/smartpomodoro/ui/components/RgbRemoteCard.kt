@@ -189,6 +189,13 @@ fun RgbRemoteCard(
                         row.forEach { button ->
                             if (button.isEffect) {
                                 // Effect Button (Flash, Strobe, Fade, Smooth)
+                                val isEffectActive = when (button.commandVal) {
+                                    "flash" -> currentEffect == 1
+                                    "strobe" -> currentEffect == 2
+                                    "fade" -> currentEffect == 3
+                                    "smooth" -> currentEffect == 4
+                                    else -> false
+                                }
                                 Surface(
                                     modifier = Modifier
                                         .weight(1f)
@@ -196,17 +203,20 @@ fun RgbRemoteCard(
                                         .padding(horizontal = 4.dp)
                                         .clip(RoundedCornerShape(12.dp))
                                         .clickable { onSendCommand(button.commandVal) },
-                                    color = SurfaceDark,
+                                    color = if (isEffectActive) AccentCyan.copy(alpha = 0.2f) else SurfaceDark,
                                     shape = RoundedCornerShape(12.dp),
-                                    border = ButtonDefaults.outlinedButtonBorder.copy(
-                                        brush = androidx.compose.ui.graphics.SolidColor(SurfaceCardBorder)
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        1.dp,
+                                        if (isEffectActive) AccentCyan else SurfaceCardBorder
                                     )
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Text(
                                             text = button.name,
-                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                            color = TextPrimary,
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontWeight = if (isEffectActive) FontWeight.Black else FontWeight.Bold
+                                            ),
+                                            color = if (isEffectActive) AccentCyan else TextPrimary,
                                             textAlign = TextAlign.Center
                                         )
                                     }

@@ -42,6 +42,28 @@ class ClockEngine(
     var keepScreenOn: Boolean = true
     var isFullScreen: Boolean = false
 
+    private var cachedLocale: Locale? = null
+    private var cachedTimeZone: TimeZone? = null
+    private var cachedDateFormat: SimpleDateFormat? = null
+    private var cachedDayFormat: SimpleDateFormat? = null
+
+    @Synchronized
+    private fun getDateFormatters(): Pair<SimpleDateFormat, SimpleDateFormat> {
+        val currentLocale = timeProvider.locale()
+        val currentTimeZone = timeProvider.timeZone()
+        if (cachedLocale != currentLocale || cachedTimeZone != currentTimeZone || cachedDateFormat == null) {
+            cachedLocale = currentLocale
+            cachedTimeZone = currentTimeZone
+            cachedDateFormat = SimpleDateFormat("EEE, MMM d, yyyy", currentLocale).apply {
+                timeZone = currentTimeZone
+            }
+            cachedDayFormat = SimpleDateFormat("EEEE", currentLocale).apply {
+                timeZone = currentTimeZone
+            }
+        }
+        return Pair(cachedDateFormat!!, cachedDayFormat!!)
+    }
+
     fun createSnapshot(nowMs: Long = timeProvider.currentTimeMillis()): ClockTimeSnapshot {
         val calendar = Calendar.getInstance(timeProvider.timeZone(), timeProvider.locale())
         calendar.timeInMillis = nowMs
@@ -69,13 +91,7 @@ class ClockEngine(
             (nowMs % 1000L) < 500L
         }
 
-        val dateFormat = SimpleDateFormat("EEE, MMM d, yyyy", timeProvider.locale()).apply {
-            timeZone = timeProvider.timeZone()
-        }
-        val dayOfWeekFormat = SimpleDateFormat("EEEE", timeProvider.locale()).apply {
-            timeZone = timeProvider.timeZone()
-        }
-
+        val (dateFormat, dayOfWeekFormat) = getDateFormatters()
         val dateStr = dateFormat.format(calendar.time)
         val dayStr = dayOfWeekFormat.format(calendar.time)
 

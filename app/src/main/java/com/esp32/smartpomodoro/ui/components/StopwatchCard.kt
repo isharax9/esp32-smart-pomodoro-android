@@ -163,6 +163,23 @@ fun StopwatchCard(
                             )
                         }
 
+                        // Reset All Slots Button
+                        val anySlotHasData = uiState.slots.any { it.isActive || it.isPaused }
+                        if (anySlotHasData) {
+                            IconButton(
+                                onClick = onResetAll,
+                                modifier = Modifier.size(32.dp),
+                                enabled = !isLocked
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.RestartAlt,
+                                    contentDescription = "Reset All Slots",
+                                    tint = AccentRed,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+
                         // Touch Lock Button
                         IconButton(
                             onClick = onToggleLock,
@@ -185,6 +202,8 @@ fun StopwatchCard(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable(enabled = !isLocked) { onCopyTime() }
                         .padding(vertical = 12.dp)
                 ) {
                     // Countdown delay badge if active

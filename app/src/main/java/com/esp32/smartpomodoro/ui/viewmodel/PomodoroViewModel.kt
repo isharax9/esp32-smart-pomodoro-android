@@ -49,7 +49,8 @@ class PomodoroViewModel(
         pollingJob = viewModelScope.launch {
             while (isActive) {
                 fetchStatus()
-                delay(1200) // Poll every 1.2 seconds for real-time responsiveness
+                val delayMs = if (_uiState.value.isConnected) 1200L else 3000L
+                delay(delayMs)
             }
         }
     }
