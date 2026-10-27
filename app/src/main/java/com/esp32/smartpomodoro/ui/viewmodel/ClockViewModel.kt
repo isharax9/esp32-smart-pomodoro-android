@@ -12,8 +12,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -22,7 +26,7 @@ class ClockViewModel(
     val engine: ClockEngine = ClockEngine(),
     private val appContext: Context? = null,
     private val externalScope: CoroutineScope? = null,
-    autoStartTicker: Boolean = true
+    private val autoStartTicker: Boolean = true
 ) : ViewModel() {
 
     private val scope: CoroutineScope
@@ -48,11 +52,38 @@ class ClockViewModel(
     )
     val uiState: StateFlow<ClockUiState> = _uiState.asStateFlow()
 
+    // Decoupled window & orientation flow: only emits when window attributes change.
+    // Never emits on 200ms time ticks, preventing MainActivity from recomposing when seconds tick.
+    val windowConfig: kotlinx.coroutines.flow.Flow<ClockWindowConfig> = _uiState
+        .map { state ->
+            ClockWindowConfig(
+                keepScreenOn = state.keepScreenOn,
+                isAutoRotate = state.isAutoRotate,
+                isFullScreen = state.isFullScreen,
+                rotationAngle = state.rotationAngle
+            )
+        }
+        .distinctUntilChanged()
+
     private var tickerJob: Job? = null
+    private var isClockVisible: Boolean = false
 
     init {
         if (autoStartTicker) {
             startTicker()
+        }
+    }
+
+    fun setClockVisible(visible: Boolean) {
+        if (isClockVisible == visible) return
+        isClockVisible = visible
+        if (visible || _uiState.value.isFullScreen) {
+            syncSnapshot()
+            if (autoStartTicker) {
+                startTicker()
+            }
+        } else {
+            stopTicker()
         }
     }
 
@@ -65,6 +96,11 @@ class ClockViewModel(
                 delay(200L)
             }
         }
+    }
+
+    fun stopTicker() {
+        tickerJob?.cancel()
+        tickerJob = null
     }
 
     fun syncSnapshot() {
@@ -224,12 +260,19 @@ class ClockViewModel(
 
     fun setFullScreen(fullScreen: Boolean) {
         engine.isFullScreen = fullScreen
+        if (fullScreen) {
+            syncSnapshot()
+            if (autoStartTicker) {
+                startTicker()
+            }
+        } else if (!isClockVisible) {
+            stopTicker()
+        }
         syncSnapshot()
     }
 
     fun toggleFullScreen() {
-        engine.isFullScreen = !engine.isFullScreen
-        syncSnapshot()
+        setFullScreen(!engine.isFullScreen)
     }
 
     fun setShowSettingsDialog(show: Boolean) {

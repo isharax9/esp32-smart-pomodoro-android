@@ -14,8 +14,12 @@ import com.esp32.smartpomodoro.notification.StopwatchFeedbackHelper
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -35,6 +39,12 @@ class StopwatchViewModel(
         )
     )
     val uiState: StateFlow<StopwatchUiState> = _uiState.asStateFlow()
+
+    // Distinct running state flow: only emits true/false when a stopwatch is started or stopped.
+    // Never emits on the 16ms tick interval, preventing tab indicators from recomposing at 60Hz.
+    val isAnyRunning: kotlinx.coroutines.flow.Flow<Boolean> = _uiState
+        .map { state -> state.slots.any { it.isRunning } }
+        .distinctUntilChanged()
 
     private var tickerJob: Job? = null
 

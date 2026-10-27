@@ -88,11 +88,18 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                val clockUiState by clockViewModel.uiState.collectAsState()
+                val windowConfig by clockViewModel.windowConfig.collectAsState(
+                    initial = com.esp32.smartpomodoro.data.model.ClockWindowConfig(
+                        keepScreenOn = clockViewModel.engine.keepScreenOn,
+                        isAutoRotate = clockViewModel.engine.isAutoRotate,
+                        isFullScreen = clockViewModel.engine.isFullScreen,
+                        rotationAngle = clockViewModel.engine.rotationAngle
+                    )
+                )
 
                 // Keep screen awake if configured in desk clock
-                LaunchedEffect(clockUiState.keepScreenOn) {
-                    if (clockUiState.keepScreenOn) {
+                LaunchedEffect(windowConfig.keepScreenOn) {
+                    if (windowConfig.keepScreenOn) {
                         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                     } else {
                         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -100,8 +107,8 @@ class MainActivity : ComponentActivity() {
                 }
 
                 // Dynamic orientation listener activation (saves battery when auto-rotate is disabled)
-                LaunchedEffect(clockUiState.isAutoRotate) {
-                    if (clockUiState.isAutoRotate && orientationEventListener?.canDetectOrientation() == true) {
+                LaunchedEffect(windowConfig.isAutoRotate) {
+                    if (windowConfig.isAutoRotate && orientationEventListener?.canDetectOrientation() == true) {
                         orientationEventListener?.enable()
                     } else {
                         orientationEventListener?.disable()
@@ -109,9 +116,9 @@ class MainActivity : ComponentActivity() {
                 }
 
                 // Fullscreen immersive mode (hides system bars and navigation bar on bedside desk clock)
-                LaunchedEffect(clockUiState.isFullScreen) {
+                LaunchedEffect(windowConfig.isFullScreen) {
                     val insetsController = WindowCompat.getInsetsController(window, window.decorView)
-                    if (clockUiState.isFullScreen) {
+                    if (windowConfig.isFullScreen) {
                         insetsController.systemBarsBehavior =
                             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                         insetsController.hide(WindowInsetsCompat.Type.systemBars())
@@ -124,12 +131,12 @@ class MainActivity : ComponentActivity() {
                 // When in Fullscreen Desk Clock mode, rotate the entire physical display window
                 // so the user gets 100% true full screen (never clamped or clipped with black bars).
                 // When on Dashboard, keep portrait for normal vertical scrolling.
-                LaunchedEffect(clockUiState.isFullScreen, clockUiState.isAutoRotate, clockUiState.rotationAngle) {
-                    if (clockUiState.isFullScreen) {
-                        requestedOrientation = if (clockUiState.isAutoRotate) {
+                LaunchedEffect(windowConfig.isFullScreen, windowConfig.isAutoRotate, windowConfig.rotationAngle) {
+                    if (windowConfig.isFullScreen) {
+                        requestedOrientation = if (windowConfig.isAutoRotate) {
                             ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
                         } else {
-                            when (clockUiState.rotationAngle) {
+                            when (windowConfig.rotationAngle) {
                                 ClockRotationAngle.ROTATION_0 -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
                                 ClockRotationAngle.ROTATION_90 -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
                                 ClockRotationAngle.ROTATION_180 -> ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT

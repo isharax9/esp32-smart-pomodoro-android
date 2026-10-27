@@ -163,6 +163,18 @@ data class ClockTimeSnapshot(
 )
 
 /**
+ * Window & orientation configuration for Giant Clock.
+ * Decoupled from 200ms time snapshot ticks so MainActivity and window flags
+ * do not trigger recomposition when seconds tick.
+ */
+data class ClockWindowConfig(
+    val keepScreenOn: Boolean = true,
+    val isAutoRotate: Boolean = true,
+    val isFullScreen: Boolean = false,
+    val rotationAngle: ClockRotationAngle = ClockRotationAngle.ROTATION_0
+)
+
+/**
  * UI State for the Giant Rotating Desk Clock.
  */
 data class ClockUiState(
