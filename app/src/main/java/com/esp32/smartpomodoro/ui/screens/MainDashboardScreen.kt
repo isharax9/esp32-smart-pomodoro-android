@@ -118,7 +118,8 @@ fun MainDashboardScreen(
                 isConnected = pomodoroUiState.isConnected,
                 hostAddress = pomodoroUiState.hostAddress,
                 onOpenIpSettings = { pomodoroViewModel.setShowIpDialog(true) },
-                onOpenCalibration = { pomodoroViewModel.setShowCalibrationDialog(true) }
+                onOpenCalibration = { pomodoroViewModel.setShowCalibrationDialog(true) },
+                onOpenAbout = { pomodoroViewModel.setShowAboutDialog(true) }
             )
         }
     ) { innerPadding ->
@@ -384,6 +385,15 @@ fun MainDashboardScreen(
             CalibrationDialog(
                 onDismiss = { pomodoroViewModel.setShowCalibrationDialog(false) },
                 onCalibrate = { strip, action -> pomodoroViewModel.calibrateStrip(strip, action) }
+            )
+        }
+
+        // About & System Info Modal
+        if (pomodoroUiState.showAboutDialog) {
+            AboutDialog(
+                hostAddress = pomodoroUiState.hostAddress,
+                isConnected = pomodoroUiState.isConnected,
+                onDismiss = { pomodoroViewModel.setShowAboutDialog(false) }
             )
         }
 

@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -27,7 +28,8 @@ fun HeaderBar(
     isConnected: Boolean,
     hostAddress: String,
     onOpenIpSettings: () -> Unit,
-    onOpenCalibration: () -> Unit
+    onOpenCalibration: () -> Unit,
+    onOpenAbout: () -> Unit
 ) {
     val statusColor by animateColorAsState(
         targetValue = if (isConnected) AccentGreen else AccentRed,
@@ -133,6 +135,23 @@ fun HeaderBar(
                 Icon(
                     imageVector = Icons.Default.Settings,
                     contentDescription = "Connection Settings",
+                    tint = TextSecondary,
+                    modifier = Modifier.size(15.dp)
+                )
+            }
+
+            // About & Info Button
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(SurfaceCard)
+                    .clickable { onOpenAbout() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = "About & System Info",
                     tint = TextSecondary,
                     modifier = Modifier.size(15.dp)
                 )

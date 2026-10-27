@@ -27,6 +27,7 @@ data class PomodoroUiState(
     val hostAddress: String = "192.168.4.1",
     val showIpDialog: Boolean = false,
     val showCalibrationDialog: Boolean = false,
+    val showAboutDialog: Boolean = false,
     val localBrightness: Float = 255f
 )
 
@@ -319,6 +320,10 @@ class PomodoroViewModel(
 
     fun setShowCalibrationDialog(show: Boolean) {
         _uiState.update { it.copy(showCalibrationDialog = show) }
+    }
+
+    fun setShowAboutDialog(show: Boolean) {
+        _uiState.update { it.copy(showAboutDialog = show) }
     }
 
     fun calibrateStrip(strip: String, action: String) {
