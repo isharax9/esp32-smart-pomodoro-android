@@ -141,6 +141,22 @@ class Esp32Repository {
         }
     }
 
+    suspend fun setStrobeMode(mode: String, target: StripTarget): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val builder = "$baseUrl/api/cmd".toHttpUrlOrNull()?.newBuilder()
+                ?.addQueryParameter("val", "strobe_mode")
+                ?.addQueryParameter("mode", mode)
+                ?.addQueryParameter("strip", target.apiVal) ?: return@withContext Result.failure(IllegalArgumentException("Invalid URL"))
+            val request = Request.Builder().url(builder.build()).get().build()
+            client.newCall(request).execute().use { response ->
+                if (response.isSuccessful) Result.success(true)
+                else Result.failure(IOException("Failed with code ${response.code}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun setAutoPause(enabled: Boolean): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
             val httpUrl = "$baseUrl/api/settings".toHttpUrlOrNull()

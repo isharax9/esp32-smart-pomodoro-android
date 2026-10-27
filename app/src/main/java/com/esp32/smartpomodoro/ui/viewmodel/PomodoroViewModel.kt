@@ -287,6 +287,13 @@ class PomodoroViewModel(
         }
     }
 
+    fun setStrobeMode(mode: String) {
+        scope.launch {
+            repository.setStrobeMode(mode, _uiState.value.selectedStrip)
+            fetchStatus()
+        }
+    }
+
     fun toggleAutoPause() {
         val currentSetting = _uiState.value.status.autoPauseEnabled
         scope.launch {

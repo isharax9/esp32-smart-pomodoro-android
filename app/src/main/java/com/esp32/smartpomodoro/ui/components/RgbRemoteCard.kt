@@ -1,10 +1,5 @@
 package com.esp32.smartpomodoro.ui.components
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,6 +9,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrightnessLow
 import androidx.compose.material.icons.filled.BrightnessHigh
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,6 +31,7 @@ fun RgbRemoteCard(
     selectedStrip: StripTarget,
     brightness: Float,
     currentEffect: Int,
+    strobeMode: Int = 0,
     fadeSpeed: Int = 60,
     fadePalette: Int = 0,
     smoothSpeed: Int = 75,
@@ -43,8 +41,18 @@ fun RgbRemoteCard(
     onBrightnessChange: (Int) -> Unit,
     onSendCommand: (String) -> Unit,
     onSetFadeConfig: ((speed: Int?, palette: Int?) -> Unit)? = null,
-    onSetSmoothConfig: ((speed: Int?, breath: Int?, palette: Int?) -> Unit)? = null
+    onSetSmoothConfig: ((speed: Int?, breath: Int?, palette: Int?) -> Unit)? = null,
+    onSetStrobeMode: ((String) -> Unit)? = null
 ) {
+    // Current Active Tab for Advanced Lighting Controls (Defaults to currentEffect if in 2..4, otherwise Fade=3)
+    var selectedEffectTab by remember { mutableStateOf(if (currentEffect in 2..4) currentEffect else 3) }
+
+    LaunchedEffect(currentEffect) {
+        if (currentEffect in 2..4) {
+            selectedEffectTab = currentEffect
+        }
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -214,7 +222,14 @@ fun RgbRemoteCard(
                                         .height(44.dp)
                                         .padding(horizontal = 4.dp)
                                         .clip(RoundedCornerShape(12.dp))
-                                        .clickable { onSendCommand(button.commandVal) },
+                                        .clickable {
+                                            when (button.commandVal) {
+                                                "strobe" -> selectedEffectTab = 2
+                                                "fade" -> selectedEffectTab = 3
+                                                "smooth" -> selectedEffectTab = 4
+                                            }
+                                            onSendCommand(button.commandVal)
+                                        },
                                     color = if (isEffectActive) AccentCyan.copy(alpha = 0.2f) else SurfaceDark,
                                     shape = RoundedCornerShape(12.dp),
                                     border = androidx.compose.foundation.BorderStroke(
@@ -257,52 +272,133 @@ fun RgbRemoteCard(
                 }
             }
 
-            // Advanced Controls for FADE (Effect 3)
-            AnimatedVisibility(
-                visible = (currentEffect == 3),
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                var localFadeSpeed by remember(fadeSpeed) { mutableStateOf(fadeSpeed.toFloat()) }
-                val fadePalettes = listOf(
-                    0 to "🌈 Rainbow",
-                    1 to "🎨 Pastel",
-                    2 to "🌅 Sunset",
-                    3 to "🌊 Ocean"
-                )
+            Spacer(modifier = Modifier.height(20.dp))
 
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp),
-                    color = SurfaceDark,
-                    shape = RoundedCornerShape(16.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFA855F7).copy(alpha = 0.5f))
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
+            // ADVANCED LIGHTING CONTROLS CONTAINER (Always visible and interactive)
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = SurfaceDark,
+                shape = RoundedCornerShape(18.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceCardBorder)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    // Title
+                    Text(
+                        text = "ADVANCED EFFECT CONTROLS",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.8.sp
+                        ),
+                        color = TextSecondary
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Tab Selector Pills: Rainbow Fade (3), Smooth Breath (4), Custom Strobe (2)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        val tabs = listOf(
+                            Triple(3, "🌈 Fade", Color(0xFFA855F7)),
+                            Triple(4, "🌊 Smooth", AccentCyan),
+                            Triple(2, "✨ Strobe", AccentAmber)
+                        )
+                        tabs.forEach { (tabId, label, themeColor) ->
+                            val isTabSelected = (selectedEffectTab == tabId)
+                            val isRunningOnEsp = (currentEffect == tabId)
+                            Surface(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .clickable { selectedEffectTab = tabId },
+                                color = if (isTabSelected) themeColor.copy(alpha = 0.25f) else SurfaceCard,
+                                shape = RoundedCornerShape(10.dp),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    if (isTabSelected) 1.5.dp else 1.dp,
+                                    if (isTabSelected) themeColor else SurfaceCardBorder
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = if (isTabSelected) FontWeight.Bold else FontWeight.Medium,
+                                            fontSize = 11.sp
+                                        ),
+                                        color = if (isTabSelected) Color.White else TextSecondary
+                                    )
+                                    if (isRunningOnEsp) {
+                                        Spacer(modifier = Modifier.width(5.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .size(6.dp)
+                                                .clip(CircleShape)
+                                                .background(AccentGreen)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Tab 3: Rainbow Fade Controls
+                    if (selectedEffectTab == 3) {
+                        var localFadeSpeed by remember(fadeSpeed) { mutableStateOf(fadeSpeed.toFloat()) }
+                        var localFadePalette by remember(fadePalette) { mutableStateOf(fadePalette) }
+                        val fadePalettes = listOf(
+                            0 to "🌈 Rainbow",
+                            1 to "🎨 Pastel",
+                            2 to "🌅 Sunset",
+                            3 to "🌊 Ocean"
+                        )
+                        val speedPresets = listOf(15 to "15s Fast", 45 to "45s Normal", 60 to "60s Calm", 120 to "120s Slow")
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "🌈 RAINBOW FADE CONTROLS",
+                                text = "🌈 FULL RAINBOW FADE",
                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black),
                                 color = Color(0xFFC084FC)
                             )
-                            Surface(
-                                shape = RoundedCornerShape(999.dp),
-                                color = Color(0xFFA855F7).copy(alpha = 0.2f)
-                            ) {
-                                Text(
-                                    text = "ACTIVE",
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    color = Color(0xFFC084FC)
-                                )
+                            if (currentEffect == 3) {
+                                Surface(
+                                    shape = RoundedCornerShape(999.dp),
+                                    color = AccentGreen.copy(alpha = 0.2f)
+                                ) {
+                                    Text(
+                                        text = "ACTIVE",
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        color = AccentGreen
+                                    )
+                                }
+                            } else {
+                                Button(
+                                    onClick = { onSendCommand("fade") },
+                                    modifier = Modifier.height(28.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA855F7)),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Apply Fade", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
                             }
                         }
 
@@ -314,13 +410,16 @@ fun RgbRemoteCard(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             fadePalettes.forEach { (id, label) ->
-                                val isSelected = (fadePalette == id)
+                                val isSelected = (localFadePalette == id)
                                 Surface(
                                     modifier = Modifier
                                         .weight(1f)
                                         .clip(RoundedCornerShape(8.dp))
-                                        .clickable { onSetFadeConfig?.invoke(null, id) },
-                                    color = if (isSelected) Color(0xFFA855F7).copy(alpha = 0.3f) else SurfaceCard,
+                                        .clickable {
+                                            localFadePalette = id
+                                            onSetFadeConfig?.invoke(null, id)
+                                        },
+                                    color = if (isSelected) Color(0xFFA855F7).copy(alpha = 0.35f) else SurfaceCard,
                                     shape = RoundedCornerShape(8.dp),
                                     border = androidx.compose.foundation.BorderStroke(
                                         1.dp,
@@ -363,75 +462,112 @@ fun RgbRemoteCard(
                                 inactiveTrackColor = SurfaceCard
                             )
                         )
+
+                        // Quick Presets
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            speedPresets.forEach { (sec, label) ->
+                                val isPreset = (localFadeSpeed.toInt() == sec)
+                                Surface(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .clickable {
+                                            localFadeSpeed = sec.toFloat()
+                                            onSetFadeConfig?.invoke(sec, null)
+                                        },
+                                    color = if (isPreset) Color(0xFFA855F7).copy(alpha = 0.25f) else SurfaceCard,
+                                    shape = RoundedCornerShape(6.dp),
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        1.dp,
+                                        if (isPreset) Color(0xFFA855F7) else Color.Transparent
+                                    )
+                                ) {
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                        color = if (isPreset) Color.White else TextSecondary,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.padding(vertical = 4.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
-                }
-            }
 
-            // Advanced Controls for SMOOTH (Effect 4)
-            AnimatedVisibility(
-                visible = (currentEffect == 4),
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                var localSmoothSpeed by remember(smoothSpeed) { mutableStateOf(smoothSpeed.toFloat()) }
-                var localSmoothBreath by remember(smoothBreath) { mutableStateOf(smoothBreath.toFloat()) }
-                val smoothPalettes = listOf(
-                    0 to "🌈 Rainbow",
-                    1 to "🎨 Pastel",
-                    2 to "🌅 Sunset",
-                    3 to "🌊 Ocean"
-                )
+                    // Tab 4: Smooth Breath Controls
+                    if (selectedEffectTab == 4) {
+                        var localSmoothSpeed by remember(smoothSpeed) { mutableStateOf(smoothSpeed.toFloat()) }
+                        var localSmoothBreath by remember(smoothBreath) { mutableStateOf(smoothBreath.toFloat()) }
+                        var localSmoothPalette by remember(smoothPalette) { mutableStateOf(smoothPalette) }
+                        val smoothPalettes = listOf(
+                            0 to "🌈 Rainbow",
+                            1 to "🎨 Pastel",
+                            2 to "🌅 Sunset",
+                            3 to "🌊 Ocean"
+                        )
+                        val breathPresets = listOf(3 to "3s Brisk", 5 to "5s Active", 7 to "7s Calm", 10 to "10s Zen")
 
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp),
-                    color = SurfaceDark,
-                    shape = RoundedCornerShape(16.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, AccentCyan.copy(alpha = 0.5f))
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "🌊 SMOOTH BREATH & RAINBOW FLOW",
+                                text = "🌊 SMOOTH BREATH & FLOW",
                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black),
                                 color = AccentCyan
                             )
-                            Surface(
-                                shape = RoundedCornerShape(999.dp),
-                                color = AccentCyan.copy(alpha = 0.2f)
-                            ) {
-                                Text(
-                                    text = "ACTIVE",
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    color = AccentCyan
-                                )
+                            if (currentEffect == 4) {
+                                Surface(
+                                    shape = RoundedCornerShape(999.dp),
+                                    color = AccentGreen.copy(alpha = 0.2f)
+                                ) {
+                                    Text(
+                                        text = "ACTIVE",
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        color = AccentGreen
+                                    )
+                                }
+                            } else {
+                                Button(
+                                    onClick = { onSendCommand("smooth") },
+                                    modifier = Modifier.height(28.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = AccentCyan),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Icon(Icons.Default.PlayArrow, contentDescription = null, tint = BackgroundDark, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Apply Smooth", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = BackgroundDark)
+                                }
                             }
                         }
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        // Palette Selector Chips (Row 1: Rainbow, Pastel, Sunset, Ocean)
+                        // Palette Selector Chips (Row 1)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             smoothPalettes.forEach { (id, label) ->
-                                val isSelected = (smoothPalette == id)
+                                val isSelected = (localSmoothPalette == id)
                                 Surface(
                                     modifier = Modifier
                                         .weight(1f)
                                         .clip(RoundedCornerShape(8.dp))
-                                        .clickable { onSetSmoothConfig?.invoke(null, null, id) },
-                                    color = if (isSelected) AccentCyan.copy(alpha = 0.3f) else SurfaceCard,
+                                        .clickable {
+                                            localSmoothPalette = id
+                                            onSetSmoothConfig?.invoke(null, null, id)
+                                        },
+                                    color = if (isSelected) AccentCyan.copy(alpha = 0.35f) else SurfaceCard,
                                     shape = RoundedCornerShape(8.dp),
                                     border = androidx.compose.foundation.BorderStroke(
                                         1.dp,
@@ -454,14 +590,17 @@ fun RgbRemoteCard(
 
                         Spacer(modifier = Modifier.height(6.dp))
 
-                        // Selected Color Breath Chip
-                        val isColorBreath = (smoothPalette == 4)
+                        // Selected Color Breath Chip (Row 2)
+                        val isColorBreath = (localSmoothPalette == 4)
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(8.dp))
-                                .clickable { onSetSmoothConfig?.invoke(null, null, 4) },
-                            color = if (isColorBreath) AccentCyan.copy(alpha = 0.3f) else SurfaceCard,
+                                .clickable {
+                                    localSmoothPalette = 4
+                                    onSetSmoothConfig?.invoke(null, null, 4)
+                                },
+                            color = if (isColorBreath) AccentCyan.copy(alpha = 0.35f) else SurfaceCard,
                             shape = RoundedCornerShape(8.dp),
                             border = androidx.compose.foundation.BorderStroke(
                                 1.dp,
@@ -525,6 +664,141 @@ fun RgbRemoteCard(
                                 inactiveTrackColor = SurfaceCard
                             )
                         )
+
+                        // Quick Breath Presets
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            breathPresets.forEach { (sec, label) ->
+                                val isPreset = (localSmoothBreath.toInt() == sec)
+                                Surface(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .clickable {
+                                            localSmoothBreath = sec.toFloat()
+                                            onSetSmoothConfig?.invoke(null, sec, null)
+                                        },
+                                    color = if (isPreset) AccentCyan.copy(alpha = 0.25f) else SurfaceCard,
+                                    shape = RoundedCornerShape(6.dp),
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        1.dp,
+                                        if (isPreset) AccentCyan else Color.Transparent
+                                    )
+                                ) {
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                        color = if (isPreset) Color.White else TextSecondary,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.padding(vertical = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Tab 2: Strobe Effect Controls
+                    if (selectedEffectTab == 2) {
+                        var localStrobeMode by remember(strobeMode) { mutableStateOf(strobeMode) }
+                        val strobeModes = listOf(
+                            0 to "🎯 Selected Color (Active Tone)",
+                            1 to "🔄 RGB Fast Cycle (R-G-B)",
+                            2 to "🌈 Rainbow Cycle (Spectrum)",
+                            3 to "⚡ Pure White (High Intensity)"
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "✨ STROBE PATTERN MODE",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black),
+                                color = AccentAmber
+                            )
+                            if (currentEffect == 2) {
+                                Surface(
+                                    shape = RoundedCornerShape(999.dp),
+                                    color = AccentGreen.copy(alpha = 0.2f)
+                                ) {
+                                    Text(
+                                        text = "ACTIVE",
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        color = AccentGreen
+                                    )
+                                }
+                            } else {
+                                Button(
+                                    onClick = { onSendCommand("strobe") },
+                                    modifier = Modifier.height(28.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = AccentAmber),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Icon(Icons.Default.PlayArrow, contentDescription = null, tint = BackgroundDark, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Apply Strobe", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = BackgroundDark)
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            strobeModes.forEach { (modeId, label) ->
+                                val isSelected = (localStrobeMode == modeId)
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable {
+                                            localStrobeMode = modeId
+                                            onSetStrobeMode?.invoke(modeId.toString())
+                                        },
+                                    color = if (isSelected) AccentAmber.copy(alpha = 0.35f) else SurfaceCard,
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        1.dp,
+                                        if (isSelected) AccentAmber else SurfaceCardBorder
+                                    )
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = label,
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = 11.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                            ),
+                                            color = if (isSelected) Color.White else TextSecondary
+                                        )
+                                        if (isSelected) {
+                                            Icon(
+                                                imageVector = Icons.Default.Check,
+                                                contentDescription = "Selected",
+                                                tint = AccentAmber,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

@@ -283,6 +283,7 @@ fun MainDashboardScreen(
                         selectedStrip = pomodoroUiState.selectedStrip,
                         brightness = pomodoroUiState.localBrightness,
                         currentEffect = pomodoroUiState.status.effect,
+                        strobeMode = pomodoroUiState.status.strobeMode,
                         fadeSpeed = pomodoroUiState.status.fadeSpeed,
                         fadePalette = pomodoroUiState.status.fadePalette,
                         smoothSpeed = pomodoroUiState.status.smoothSpeed,
@@ -292,7 +293,8 @@ fun MainDashboardScreen(
                         onBrightnessChange = { pomodoroViewModel.setBrightness(it) },
                         onSendCommand = { pomodoroViewModel.sendColorCommand(it) },
                         onSetFadeConfig = { speed, palette -> pomodoroViewModel.setFadeConfig(speed, palette) },
-                        onSetSmoothConfig = { speed, breath, palette -> pomodoroViewModel.setSmoothConfig(speed, breath, palette) }
+                        onSetSmoothConfig = { speed, breath, palette -> pomodoroViewModel.setSmoothConfig(speed, breath, palette) },
+                        onSetStrobeMode = { pomodoroViewModel.setStrobeMode(it) }
                     )
                 }
 
