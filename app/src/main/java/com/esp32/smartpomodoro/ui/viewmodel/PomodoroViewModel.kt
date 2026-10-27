@@ -272,6 +272,20 @@ class PomodoroViewModel(
         }
     }
 
+    fun setFadeConfig(speed: Int? = null, palette: Int? = null) {
+        scope.launch {
+            repository.setFadeConfig(speed, palette, _uiState.value.selectedStrip)
+            fetchStatus()
+        }
+    }
+
+    fun setSmoothConfig(speed: Int? = null, breath: Int? = null, palette: Int? = null) {
+        scope.launch {
+            repository.setSmoothConfig(speed, breath, palette, _uiState.value.selectedStrip)
+            fetchStatus()
+        }
+    }
+
     fun toggleAutoPause() {
         val currentSetting = _uiState.value.status.autoPauseEnabled
         scope.launch {

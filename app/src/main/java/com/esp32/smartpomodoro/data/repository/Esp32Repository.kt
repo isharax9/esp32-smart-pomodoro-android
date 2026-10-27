@@ -106,6 +106,41 @@ class Esp32Repository {
         }
     }
 
+    suspend fun setFadeConfig(speed: Int?, palette: Int?, target: StripTarget): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val builder = "$baseUrl/api/cmd".toHttpUrlOrNull()?.newBuilder()
+                ?.addQueryParameter("val", "fade_config")
+                ?.addQueryParameter("strip", target.apiVal) ?: return@withContext Result.failure(IllegalArgumentException("Invalid URL"))
+            if (speed != null) builder.addQueryParameter("speed", speed.toString())
+            if (palette != null) builder.addQueryParameter("palette", palette.toString())
+            val request = Request.Builder().url(builder.build()).get().build()
+            client.newCall(request).execute().use { response ->
+                if (response.isSuccessful) Result.success(true)
+                else Result.failure(IOException("Failed with code ${response.code}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun setSmoothConfig(speed: Int?, breath: Int?, palette: Int?, target: StripTarget): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val builder = "$baseUrl/api/cmd".toHttpUrlOrNull()?.newBuilder()
+                ?.addQueryParameter("val", "smooth_config")
+                ?.addQueryParameter("strip", target.apiVal) ?: return@withContext Result.failure(IllegalArgumentException("Invalid URL"))
+            if (speed != null) builder.addQueryParameter("speed", speed.toString())
+            if (breath != null) builder.addQueryParameter("breath", breath.toString())
+            if (palette != null) builder.addQueryParameter("palette", palette.toString())
+            val request = Request.Builder().url(builder.build()).get().build()
+            client.newCall(request).execute().use { response ->
+                if (response.isSuccessful) Result.success(true)
+                else Result.failure(IOException("Failed with code ${response.code}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun setAutoPause(enabled: Boolean): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
             val httpUrl = "$baseUrl/api/settings".toHttpUrlOrNull()
