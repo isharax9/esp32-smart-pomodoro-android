@@ -51,7 +51,11 @@ fun PomodoroTimerCard(
 
     val animatedProgress by animateFloatAsState(
         targetValue = status.progressFraction,
-        animationSpec = tween(durationMillis = 500),
+        animationSpec = if (status.isPaused || status.parsedState == PomodoroState.IDLE) {
+            androidx.compose.animation.core.snap()
+        } else {
+            androidx.compose.animation.core.tween(durationMillis = 1000, easing = androidx.compose.animation.core.LinearEasing)
+        },
         label = "timerProgress"
     )
 
@@ -111,7 +115,7 @@ fun PomodoroTimerCard(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Circular Countdown Dial
+            // Circular Countdown Dial (Mathematically locked centered digits)
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.size(200.dp)
@@ -142,21 +146,32 @@ fun PomodoroTimerCard(
                     )
                 }
 
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = timeFormatted,
-                        style = MaterialTheme.typography.displayLarge.copy(
-                            fontWeight = FontWeight.Black,
-                            fontSize = 44.sp
-                        ),
-                        color = TextPrimary
-                    )
+                // Countdown Digits locked directly at the dial center
+                Text(
+                    text = timeFormatted,
+                    style = MaterialTheme.typography.displayLarge.copy(
+                        fontWeight = FontWeight.Black,
+                        fontSize = 46.sp,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                        fontFeatureSettings = "tnum",
+                        letterSpacing = (-1).sp
+                    ),
+                    color = TextPrimary,
+                    modifier = Modifier.align(Alignment.Center)
+                )
 
+                // Reserved status badge slot anchored below center - zero displacement of digits
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .offset(y = 42.dp)
+                        .height(26.dp),
+                    contentAlignment = Alignment.Center
+                ) {
                     if (status.isPaused) {
                         Surface(
                             color = AccentAmber.copy(alpha = 0.2f),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.padding(top = 4.dp)
+                            shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
                                 text = if (!status.isUserPresent) "PAUSED (AWAY)" else "PAUSED",
@@ -171,76 +186,87 @@ fun PomodoroTimerCard(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Action Buttons Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
+            // Action Buttons Row: Stable 48.dp container preventing card height shifts
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                contentAlignment = Alignment.Center
             ) {
                 if (status.parsedState == PomodoroState.IDLE) {
                     Button(
                         onClick = onStart,
                         colors = ButtonDefaults.buttonColors(containerColor = AccentRed),
                         shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.fillMaxWidth(0.85f).height(48.dp)
+                        modifier = Modifier
+                            .fillMaxWidth(0.85f)
+                            .height(48.dp)
                     ) {
                         Icon(imageVector = Icons.Default.PlayArrow, contentDescription = "Start")
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Start Focus Sprint (25m)", fontWeight = FontWeight.Bold)
                     }
                 } else {
-                    // Reset Button
-                    IconButton(
-                        onClick = onReset,
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(SurfaceDark)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Reset",
-                            tint = TextSecondary
-                        )
-                    }
+                        // Reset Button
+                        IconButton(
+                            onClick = onReset,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(SurfaceDark)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Reset",
+                                tint = TextSecondary
+                            )
+                        }
 
-                    Spacer(modifier = Modifier.width(16.dp))
+                        Spacer(modifier = Modifier.width(16.dp))
 
-                    // Pause / Resume Main Button
-                    Button(
-                        onClick = if (status.isPaused) onResume else onPause,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (status.isPaused) AccentGreen else phaseColor
-                        ),
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.height(48.dp).weight(1f)
-                    ) {
-                        Icon(
-                            imageVector = if (status.isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
-                            contentDescription = if (status.isPaused) "Resume" else "Pause"
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = if (status.isPaused) "Resume" else "Pause",
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                        // Pause / Resume Main Button
+                        Button(
+                            onClick = if (status.isPaused) onResume else onPause,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (status.isPaused) AccentGreen else phaseColor
+                            ),
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier
+                                .height(48.dp)
+                                .weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = if (status.isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
+                                contentDescription = if (status.isPaused) "Resume" else "Pause"
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (status.isPaused) "Resume" else "Pause",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
 
-                    Spacer(modifier = Modifier.width(16.dp))
+                        Spacer(modifier = Modifier.width(16.dp))
 
-                    // Skip Phase Button
-                    IconButton(
-                        onClick = onSkip,
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(SurfaceDark)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.SkipNext,
-                            contentDescription = "Skip Phase",
-                            tint = TextSecondary
-                        )
+                        // Skip Phase Button
+                        IconButton(
+                            onClick = onSkip,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(SurfaceDark)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.SkipNext,
+                                contentDescription = "Skip Phase",
+                                tint = TextSecondary
+                            )
+                        }
                     }
                 }
             }

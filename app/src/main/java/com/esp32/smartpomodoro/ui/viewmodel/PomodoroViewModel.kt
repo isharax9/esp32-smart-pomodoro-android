@@ -56,6 +56,8 @@ class PomodoroViewModel(
     private var localCyclesCompleted: Long = 0L
     private var pomodoroTimerJob: Job? = null
 
+    private var lastActionTimestamp: Long = 0L
+
     init {
         if (autoStartPolling) {
             startPolling()
@@ -70,8 +72,7 @@ class PomodoroViewModel(
                     remainingSec = localRemainingSec,
                     totalSec = localTotalSec,
                     isPaused = localIsPaused,
-                    cyclesCompleted = localCyclesCompleted,
-                    isUserPresent = true
+                    cyclesCompleted = localCyclesCompleted
                 )
             )
         }
@@ -83,10 +84,11 @@ class PomodoroViewModel(
             while (isActive && localTimerActive) {
                 delay(1000L)
                 if (!localIsPaused && localPhase != PomodoroState.IDLE) {
-                    if (localRemainingSec > 1) {
+                    if (localRemainingSec > 0) {
                         localRemainingSec--
                         updateLocalStatus()
-                    } else {
+                    }
+                    if (localRemainingSec == 0L) {
                         // Phase complete
                         if (localPhase == PomodoroState.WORK) {
                             localCyclesCompleted++
@@ -152,7 +154,19 @@ class PomodoroViewModel(
                 }
                 lastObservedState = current
 
+                val timeSinceAction = System.currentTimeMillis() - lastActionTimestamp
                 val effectiveStatus = if (localTimerActive) {
+                    if (timeSinceAction > 2500L) {
+                        // Harmonize auto-pause state from ESP32 presence sensor once user action settles
+                        if (status.parsedState == localPhase && status.isPaused != localIsPaused) {
+                            localIsPaused = status.isPaused
+                        }
+                        // Harmonize time drift if ESP32 and phone drift by > 2s
+                        if (status.parsedState == localPhase && kotlin.math.abs(localRemainingSec - status.remainingSec) > 2) {
+                            localRemainingSec = status.remainingSec
+                            localTotalSec = status.totalSec
+                        }
+                    }
                     status.copy(
                         state = localPhase.name,
                         remainingSec = localRemainingSec,
@@ -161,7 +175,7 @@ class PomodoroViewModel(
                         cyclesCompleted = localCyclesCompleted
                     )
                 } else {
-                    if (status.parsedState != PomodoroState.IDLE) {
+                    if (status.parsedState != PomodoroState.IDLE && timeSinceAction > 2500L) {
                         localPhase = status.parsedState
                         localRemainingSec = status.remainingSec
                         localTotalSec = status.totalSec
@@ -196,6 +210,7 @@ class PomodoroViewModel(
     }
 
     fun triggerPomodoroAction(action: String) {
+        lastActionTimestamp = System.currentTimeMillis()
         when (action.lowercase()) {
             "start" -> {
                 localTimerActive = true
@@ -203,6 +218,7 @@ class PomodoroViewModel(
                 localTotalSec = 1500L
                 localRemainingSec = 1500L
                 localIsPaused = false
+                _uiState.update { it.copy(status = it.status.copy(isUserPresent = true)) }
                 updateLocalStatus()
                 startLocalCountdown()
             }

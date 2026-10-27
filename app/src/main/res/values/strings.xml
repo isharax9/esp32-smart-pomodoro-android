@@ -1,6 +1,6 @@
 <resources>
-    <string name="app_name">Smart Pomodoro</string>
+    <string name="app_name">AuraFlow</string>
     <string name="default_esp32_ip">192.168.4.1</string>
-    <string name="notification_channel_name">Pomodoro Alerts</string>
-    <string name="notification_channel_desc">Notifications for Pomodoro focus and break intervals</string>
+    <string name="notification_channel_name">AuraFlow Focus Alerts</string>
+    <string name="notification_channel_desc">Notifications for focus sprints and recovery intervals</string>
 </resources>

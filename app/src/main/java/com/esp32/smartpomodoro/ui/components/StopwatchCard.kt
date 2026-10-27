@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -128,7 +129,7 @@ fun StopwatchCard(
                             enabled = !isLocked
                         ) {
                             Icon(
-                                imageVector = if (uiState.volumeControlEnabled) Icons.Default.Tune else Icons.Default.VolumeMute,
+                                imageVector = if (uiState.volumeControlEnabled) Icons.Default.Tune else Icons.AutoMirrored.Filled.VolumeMute,
                                 contentDescription = "Volume Keys Control",
                                 tint = if (uiState.volumeControlEnabled) AccentCyan else TextMuted,
                                 modifier = Modifier.size(18.dp)
@@ -142,7 +143,7 @@ fun StopwatchCard(
                             enabled = !isLocked
                         ) {
                             Icon(
-                                imageVector = if (uiState.soundEnabled) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
+                                imageVector = if (uiState.soundEnabled) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
                                 contentDescription = "Toggle Sound",
                                 tint = if (uiState.soundEnabled) AccentCyan else TextMuted,
                                 modifier = Modifier.size(18.dp)
@@ -156,7 +157,7 @@ fun StopwatchCard(
                             enabled = !isLocked && uiState.displayedTimeMs > 0
                         ) {
                             Icon(
-                                imageVector = Icons.Default.DirectionsRun,
+                                imageVector = Icons.AutoMirrored.Filled.DirectionsRun,
                                 contentDescription = "Pace Calculator",
                                 tint = if (uiState.displayedTimeMs > 0) AccentCyan else TextMuted,
                                 modifier = Modifier.size(18.dp)
@@ -195,7 +196,7 @@ fun StopwatchCard(
                     }
                 }
 
-                Divider(color = SurfaceCardBorder, thickness = 1.dp)
+                HorizontalDivider(color = SurfaceCardBorder, thickness = 1.dp)
 
                 // 2. GIANT TIME READOUT
                 Column(
@@ -483,15 +484,18 @@ fun StopwatchCard(
                             }
                         }
 
-                        Divider(color = SurfaceCardBorder.copy(alpha = 0.5f), thickness = 1.dp)
+                        HorizontalDivider(color = SurfaceCardBorder.copy(alpha = 0.5f), thickness = 1.dp)
 
-                        // Lap rows (latest laps at top)
+                        // Lap rows (latest laps at top, with expandable view)
+                        var showAllLaps by remember { mutableStateOf(false) }
                         val reversedLaps = remember(uiState.currentLaps) { uiState.currentLaps.reversed() }
+                        val displayedLaps = if (showAllLaps) reversedLaps else reversedLaps.take(5)
+
                         Column(
                             verticalArrangement = Arrangement.spacedBy(6.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            reversedLaps.take(5).forEach { lap ->
+                            displayedLaps.forEach { lap ->
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -545,6 +549,20 @@ fun StopwatchCard(
                                             fontWeight = FontWeight.Normal
                                         ),
                                         color = TextSecondary
+                                    )
+                                }
+                            }
+
+                            if (reversedLaps.size > 5) {
+                                TextButton(
+                                    onClick = { showAllLaps = !showAllLaps },
+                                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                                ) {
+                                    Text(
+                                        text = if (showAllLaps) "Show Less" else "Show All (${reversedLaps.size} Laps)",
+                                        color = AccentCyan,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold
                                     )
                                 }
                             }

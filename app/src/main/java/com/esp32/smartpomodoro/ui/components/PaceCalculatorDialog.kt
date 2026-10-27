@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -67,7 +67,7 @@ fun PaceCalculatorDialog(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.DirectionsRun,
+                            imageVector = Icons.AutoMirrored.Filled.DirectionsRun,
                             contentDescription = "Pace",
                             tint = AccentCyan,
                             modifier = Modifier.size(20.dp)
@@ -87,7 +87,7 @@ fun PaceCalculatorDialog(
                     }
                 }
 
-                Divider(color = SurfaceCardBorder, thickness = 1.dp)
+                HorizontalDivider(color = SurfaceCardBorder, thickness = 1.dp)
 
                 // Distance Input & Unit Toggle Row
                 Row(
@@ -188,7 +188,7 @@ fun PaceCalculatorDialog(
                             }
                         }
 
-                        Divider(color = SurfaceCardBorder.copy(alpha = 0.5f))
+                        HorizontalDivider(color = SurfaceCardBorder.copy(alpha = 0.5f))
 
                         // Speed Result Row
                         Row(

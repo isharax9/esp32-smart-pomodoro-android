@@ -93,4 +93,14 @@ class PomodoroViewModelTest {
         assertEquals(1500L, status.remainingSec)
         assertFalse(status.isPaused)
     }
+
+    @Test
+    fun testPausePreservesPresence() {
+        viewModel.triggerPomodoroAction("start")
+        assertTrue(viewModel.uiState.value.status.isUserPresent)
+
+        viewModel.triggerPomodoroAction("pause")
+        assertTrue(viewModel.uiState.value.status.isPaused)
+        assertTrue(viewModel.uiState.value.status.isUserPresent)
+    }
 }

@@ -48,17 +48,17 @@ fun HeaderBar(
             modifier = Modifier.weight(1f)
         ) {
             Text(
-                text = "SMART POMODORO",
+                text = "AURAFLOW",
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Black,
-                    fontSize = 16.sp,
-                    letterSpacing = 0.5.sp
+                    fontSize = 17.sp,
+                    letterSpacing = 1.2.sp
                 ),
                 color = TextPrimary,
                 maxLines = 1
             )
             Text(
-                text = "ESP32 Desk Environment",
+                text = "Smart Focus & Desk Companion",
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontSize = 11.sp
                 ),

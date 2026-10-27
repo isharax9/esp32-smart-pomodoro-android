@@ -11,8 +11,8 @@ android {
         applicationId = "com.esp32.smartpomodoro"
         minSdk = 26 // Android 8.0 (Oreo) Minimum Requirement
         targetSdk = 34
-        versionCode = 32
-        versionName = "3.2.0"
+        versionCode = 40
+        versionName = "4.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

@@ -61,15 +61,15 @@ fun AboutDialog(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(AccentCyan.copy(alpha = 0.15f))
-                            .border(1.dp, AccentCyan.copy(alpha = 0.4f), CircleShape),
+                            .background(AccentCoral.copy(alpha = 0.15f))
+                            .border(1.dp, AccentCoral.copy(alpha = 0.4f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = "🍅", fontSize = 18.sp)
+                        Text(text = "✨", fontSize = 18.sp)
                     }
                     Column {
                         Text(
-                            text = "Smart Pomodoro",
+                            text = "AuraFlow",
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Black,
                                 fontSize = 16.sp
@@ -77,7 +77,7 @@ fun AboutDialog(
                             color = TextPrimary
                         )
                         Text(
-                            text = "Desk Environment System",
+                            text = "Psychology Desk Ecosystem",
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                             color = TextSecondary
                         )
@@ -87,16 +87,16 @@ fun AboutDialog(
                 // Version Tag Badge
                 Surface(
                     shape = RoundedCornerShape(999.dp),
-                    color = AccentGreen.copy(alpha = 0.15f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, AccentGreen.copy(alpha = 0.4f))
+                    color = AccentCyan.copy(alpha = 0.15f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, AccentCyan.copy(alpha = 0.4f))
                 ) {
                     Text(
-                        text = "v3.2",
+                        text = "v4.0 AuraFlow",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Black,
                             fontSize = 11.sp
                         ),
-                        color = AccentGreen,
+                        color = AccentCyan,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                     )
                 }
@@ -121,8 +121,8 @@ fun AboutDialog(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("Release Version", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-                            Text("v3.2.0 (Build 32)", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = TextPrimary)
+                            Text("Release Edition", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                            Text("v4.0.0 (AuraFlow Redesign)", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = TextPrimary)
                         }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -142,6 +142,31 @@ fun AboutDialog(
                                 color = if (isConnected) AccentGreen else AccentRed
                             )
                         }
+                    }
+                }
+
+                // Psychological Architecture Overview
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = SurfaceCard,
+                    shape = RoundedCornerShape(14.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceCardBorder)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = "HUMAN PSYCHOLOGY & ERGONOMICS",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Black,
+                                fontSize = 10.sp,
+                                letterSpacing = 0.5.sp
+                            ),
+                            color = AccentCoral
+                        )
+                        Text(
+                            text = "• Focus Sprint: Zero RGB visual noise to protect deep flow states.\n• Time Hub: Desk Clock & Multi-Slot Stopwatch unified in one ergonomic center.\n• Ambient Studio: Independent lighting control for desk mood & focus atmosphere.\n• Circadian Slate: Anti-glare OLED palette designed for long screen sessions.",
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, lineHeight = 16.sp),
+                            color = TextSecondary
+                        )
                     }
                 }
 

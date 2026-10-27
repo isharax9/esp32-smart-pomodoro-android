@@ -6,11 +6,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AvTimer
 import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,9 +31,14 @@ import com.esp32.smartpomodoro.ui.viewmodel.PomodoroViewModel
 import com.esp32.smartpomodoro.ui.viewmodel.StopwatchViewModel
 
 enum class DashboardTab(val title: String) {
-    POMODORO("Focus Sprint"),
-    STOPWATCH("Giant Stopwatch"),
-    CLOCK("Desk Clock")
+    FOCUS("Focus Sprint"),
+    TIME("Desk Time"),
+    AMBIENT("Ambient Aura")
+}
+
+enum class TimeSubTab(val title: String) {
+    CLOCK("Desk Clock"),
+    STOPWATCH("Giant Stopwatch")
 }
 
 @Composable
@@ -45,11 +52,16 @@ fun MainDashboardScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
-    var selectedTab by remember { mutableStateOf(DashboardTab.POMODORO) }
+    var selectedTab by remember { mutableStateOf(DashboardTab.FOCUS) }
+    var timeSubTab by remember { mutableStateOf(TimeSubTab.CLOCK) }
 
-    // Synchronize active tab with StopwatchViewModel so hardware volume keys are only intercepted when Stopwatch is in focus
-    LaunchedEffect(selectedTab) {
-        stopwatchViewModel?.setActiveTab(selectedTab.name)
+    // Synchronize active tab with StopwatchViewModel so hardware volume keys are only intercepted when Stopwatch is actively visible
+    LaunchedEffect(selectedTab, timeSubTab) {
+        if (selectedTab == DashboardTab.TIME && timeSubTab == TimeSubTab.STOPWATCH) {
+            stopwatchViewModel?.setActiveTab("STOPWATCH")
+        } else {
+            stopwatchViewModel?.setActiveTab("OTHER")
+        }
     }
 
     // Stopwatch and Clock state observation
@@ -70,11 +82,12 @@ fun MainDashboardScreen(
             onToggleAutoRotate = { clockViewModel.toggleAutoRotate() },
             onSwitchToStopwatch = {
                 clockViewModel.setFullScreen(false)
-                selectedTab = DashboardTab.STOPWATCH
+                selectedTab = DashboardTab.TIME
+                timeSubTab = TimeSubTab.STOPWATCH
             },
             onSwitchToPomodoro = {
                 clockViewModel.setFullScreen(false)
-                selectedTab = DashboardTab.POMODORO
+                selectedTab = DashboardTab.FOCUS
             },
             onCycleTheme = { clockViewModel.cycleTheme() },
             onCycleFontFamily = { clockViewModel.cycleFontFamily() },
@@ -131,129 +144,130 @@ fun MainDashboardScreen(
                 .background(BackgroundDark),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Dashboard Navigation Tab Switcher (Pomodoro Focus vs Giant Stopwatch vs Desk Clock)
-            if (stopwatchViewModel != null || clockViewModel != null) {
-                Surface(
-                    color = SurfaceCard,
-                    shape = RoundedCornerShape(16.dp),
+            // Psychological 3-Pillar Navigation:
+            // 1. Focus (Deep Work Sprint & Presence)
+            // 2. Time (Unified Desk Clock & Giant Stopwatch Hub)
+            // 3. Ambient (Dedicated Dual RGB Light Strip Studio)
+            Surface(
+                color = SurfaceCard,
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Row(
+                    // 1. Focus Sprint Tab Pill (Calm Mindful Coral)
+                    val isFocus = selectedTab == DashboardTab.FOCUS
+                    Surface(
+                        color = if (isFocus) AccentCoral else Color.Transparent,
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { selectedTab = DashboardTab.FOCUS }
                     ) {
-                        // 1. Pomodoro Tab Pill
-                        val isPomodoro = selectedTab == DashboardTab.POMODORO
-                        Surface(
-                            color = if (isPomodoro) AccentRed else Color.Transparent,
-                            shape = RoundedCornerShape(12.dp),
+                        Row(
                             modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable { selectedTab = DashboardTab.POMODORO }
+                                .padding(vertical = 10.dp)
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .padding(vertical = 10.dp)
-                                    .fillMaxWidth(),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.HourglassTop,
-                                    contentDescription = "Pomodoro",
-                                    tint = if (isPomodoro) BackgroundDark else TextSecondary,
-                                    modifier = Modifier.size(16.dp)
-                                )
+                            Icon(
+                                imageVector = Icons.Default.HourglassTop,
+                                contentDescription = "Focus",
+                                tint = if (isFocus) BackgroundDark else TextSecondary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(
+                                text = "Focus",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = if (isFocus) BackgroundDark else TextSecondary
+                            )
+                        }
+                    }
+
+                    // 2. Time Tab Pill (Clock + Stopwatch Unified, with active running badge)
+                    val isTime = selectedTab == DashboardTab.TIME
+                    val anyStopwatchRunning = stopwatchUiState?.slots?.any { it.isRunning } == true
+                    val timeActiveColor = clockUiState?.theme?.primaryColor ?: AccentAmber
+                    Surface(
+                        color = if (isTime) timeActiveColor else Color.Transparent,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { selectedTab = DashboardTab.TIME }
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(vertical = 10.dp)
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Schedule,
+                                contentDescription = "Time",
+                                tint = if (isTime) BackgroundDark else TextSecondary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(
+                                text = "Time",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = if (isTime) BackgroundDark else TextSecondary
+                            )
+                            if (anyStopwatchRunning) {
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "Focus",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
-                                    color = if (isPomodoro) BackgroundDark else TextSecondary
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isTime) BackgroundDark else AccentGreen)
                                 )
                             }
                         }
+                    }
 
-                        // 2. Stopwatch Tab Pill (with active running badge)
-                        val isStopwatch = selectedTab == DashboardTab.STOPWATCH
-                        val anyStopwatchRunning = stopwatchUiState?.slots?.any { it.isRunning } == true
-                        Surface(
-                            color = if (isStopwatch) AccentCyan else Color.Transparent,
-                            shape = RoundedCornerShape(12.dp),
+                    // 3. Ambient Lighting Tab Pill (Dedicated RGB Controller)
+                    val isAmbient = selectedTab == DashboardTab.AMBIENT
+                    Surface(
+                        color = if (isAmbient) AccentPurple else Color.Transparent,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .weight(1.05f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { selectedTab = DashboardTab.AMBIENT }
+                    ) {
+                        Row(
                             modifier = Modifier
-                                .weight(1.1f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable { selectedTab = DashboardTab.STOPWATCH }
+                                .padding(vertical = 10.dp)
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .padding(vertical = 10.dp)
-                                    .fillMaxWidth(),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AvTimer,
-                                    contentDescription = "Stopwatch",
-                                    tint = if (isStopwatch) BackgroundDark else TextSecondary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "Stopwatch",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
-                                    color = if (isStopwatch) BackgroundDark else TextSecondary
-                                )
-                                if (anyStopwatchRunning) {
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Box(
-                                        modifier = Modifier
-                                            .size(6.dp)
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(if (isStopwatch) BackgroundDark else AccentGreen)
-                                    )
-                                }
-                            }
-                        }
-
-                        // 3. Giant Desk Clock Tab Pill
-                        val isClock = selectedTab == DashboardTab.CLOCK
-                        val clockThemeColor = clockUiState?.theme?.primaryColor ?: AccentAmber
-                        Surface(
-                            color = if (isClock) clockThemeColor else Color.Transparent,
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable { selectedTab = DashboardTab.CLOCK }
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .padding(vertical = 10.dp)
-                                    .fillMaxWidth(),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Schedule,
-                                    contentDescription = "Desk Clock",
-                                    tint = if (isClock) BackgroundDark else TextSecondary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "Clock",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
-                                    color = if (isClock) BackgroundDark else TextSecondary
-                                )
-                            }
+                            Icon(
+                                imageVector = Icons.Default.Palette,
+                                contentDescription = "Ambient Lights",
+                                tint = if (isAmbient) BackgroundDark else TextSecondary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(
+                                text = "Ambient",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = if (isAmbient) BackgroundDark else TextSecondary
+                            )
                         }
                     }
                 }
@@ -261,8 +275,9 @@ fun MainDashboardScreen(
 
             // Tab Content
             when (selectedTab) {
-                DashboardTab.POMODORO -> {
-                    // 1. Pomodoro Focus Countdown Dial & Controls
+                DashboardTab.FOCUS -> {
+                    // Deep Work Sanctuary: Zero visual clutter from lighting controllers
+                    // 1. Rock-solid Pomodoro Focus Dial & Controls
                     PomodoroTimerCard(
                         status = pomodoroUiState.status,
                         onStart = { pomodoroViewModel.triggerPomodoroAction("start") },
@@ -277,8 +292,178 @@ fun MainDashboardScreen(
                         status = pomodoroUiState.status,
                         onToggleAutoPause = { pomodoroViewModel.toggleAutoPause() }
                     )
+                }
 
-                    // 3. 24-Key RGB Light Strip Controller
+                DashboardTab.TIME -> {
+                    // Unified Timekeeper Hub: Seamlessly switch between Desk Clock and Giant Stopwatch
+                    Surface(
+                        color = SurfaceDark,
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(3.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            // Sub-tab 1: Desk Clock
+                            val isClockSub = timeSubTab == TimeSubTab.CLOCK
+                            val clockThemeColor = clockUiState?.theme?.primaryColor ?: AccentAmber
+                            Surface(
+                                color = if (isClockSub) clockThemeColor else Color.Transparent,
+                                shape = RoundedCornerShape(11.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(11.dp))
+                                    .clickable { timeSubTab = TimeSubTab.CLOCK }
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .padding(vertical = 8.dp)
+                                        .fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Schedule,
+                                        contentDescription = "Desk Clock",
+                                        tint = if (isClockSub) BackgroundDark else TextSecondary,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Desk Clock",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = if (isClockSub) BackgroundDark else TextSecondary
+                                    )
+                                }
+                            }
+
+                            // Sub-tab 2: Giant Stopwatch
+                            val isStopwatchSub = timeSubTab == TimeSubTab.STOPWATCH
+                            val anyRunning = stopwatchUiState?.slots?.any { it.isRunning } == true
+                            Surface(
+                                color = if (isStopwatchSub) AccentCyan else Color.Transparent,
+                                shape = RoundedCornerShape(11.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(11.dp))
+                                    .clickable { timeSubTab = TimeSubTab.STOPWATCH }
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .padding(vertical = 8.dp)
+                                        .fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AvTimer,
+                                        contentDescription = "Stopwatch",
+                                        tint = if (isStopwatchSub) BackgroundDark else TextSecondary,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Stopwatch",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = if (isStopwatchSub) BackgroundDark else TextSecondary
+                                    )
+                                    if (anyRunning) {
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .size(7.dp)
+                                                .clip(CircleShape)
+                                                .background(if (isStopwatchSub) BackgroundDark else AccentGreen)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Render selected Timepiece view
+                    when (timeSubTab) {
+                        TimeSubTab.CLOCK -> {
+                            if (clockViewModel != null && clockUiState != null) {
+                                ClockCard(
+                                    uiState = clockUiState,
+                                    pomodoroStatus = pomodoroUiState.status,
+                                    onCycleRotation = { clockViewModel.cycleRotation() },
+                                    onSelectRotation = { clockViewModel.setRotationAngle(it) },
+                                    onToggleOrientation = { clockViewModel.toggleOrientation() },
+                                    onToggleAutoRotate = { clockViewModel.toggleAutoRotate() },
+                                    onCycleTheme = { clockViewModel.cycleTheme() },
+                                    onCycleFontFamily = { clockViewModel.cycleFontFamily() },
+                                    onCycleFontSize = { clockViewModel.cycleFontSizeScale() },
+                                    onToggleTimeFormat = { clockViewModel.toggleTimeFormat() },
+                                    onCycleSeconds = { clockViewModel.cycleSecondsDisplay() },
+                                    onToggleNightDimming = { clockViewModel.toggleNightDimming() },
+                                    onToggleFullScreen = { clockViewModel.setFullScreen(true) },
+                                    onOpenSettings = { clockViewModel.setShowSettingsDialog(true) },
+                                    onCopyTime = { clockViewModel.copyCurrentTimeToClipboard(context) },
+                                    onSwitchToPomodoro = { selectedTab = DashboardTab.FOCUS }
+                                )
+                            }
+                        }
+
+                        TimeSubTab.STOPWATCH -> {
+                            if (stopwatchViewModel != null && stopwatchUiState != null) {
+                                val (mainDigits, fractionDigits) = remember(
+                                    stopwatchUiState.displayedTimeMs,
+                                    stopwatchUiState.precision
+                                ) {
+                                    stopwatchViewModel.engine.getFormattedComponents(
+                                        stopwatchUiState.displayedTimeMs,
+                                        stopwatchUiState.precision
+                                    )
+                                }
+
+                                StopwatchCard(
+                                    uiState = stopwatchUiState,
+                                    mainTimeDigits = mainDigits,
+                                    fractionDigits = fractionDigits,
+                                    onPrimaryAction = { stopwatchViewModel.onPrimaryAction() },
+                                    onPrimaryActionLong = { stopwatchViewModel.onPrimaryActionLong() },
+                                    onSecondaryAction = { stopwatchViewModel.onSecondaryAction() },
+                                    onSelectSlot = { stopwatchViewModel.selectSlot(it) },
+                                    onSetDelay = { stopwatchViewModel.setPreStartDelay(it) },
+                                    onToggleLock = { stopwatchViewModel.toggleTouchLock() },
+                                    onUnlock = { stopwatchViewModel.unlockTouch() },
+                                    onLockTouched = { stopwatchViewModel.onLockTouched() },
+                                    onOpenPaceDialog = { stopwatchViewModel.setShowPaceDialog(true) },
+                                    onCopyTime = { stopwatchViewModel.copyTimeToClipboard(context) },
+                                    onCopyLaps = { stopwatchViewModel.copyLapsToClipboard(context) },
+                                    onClearLaps = { stopwatchViewModel.clearLaps() },
+                                    onResetAll = { stopwatchViewModel.resetAllSlots() },
+                                    onToggleSound = { stopwatchViewModel.toggleSound() },
+                                    onToggleVolumeControl = { stopwatchViewModel.toggleVolumeControl() }
+                                )
+
+                                // Pace & Speed Calculator Dialog
+                                if (stopwatchUiState.showPaceDialog) {
+                                    PaceCalculatorDialog(
+                                        elapsedTimeMs = stopwatchUiState.displayedTimeMs,
+                                        timeFormatted = stopwatchViewModel.engine.formatTimeFull(stopwatchUiState.displayedTimeMs),
+                                        onCalculate = { dist, unit -> stopwatchViewModel.calculatePaceAndSpeed(dist, unit) },
+                                        onCopyPace = { stopwatchViewModel.copyTextToClipboard("Pace", it, context) },
+                                        onCopySpeed = { stopwatchViewModel.copyTextToClipboard("Speed", it, context) },
+                                        onDismiss = { stopwatchViewModel.setShowPaceDialog(false) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                DashboardTab.AMBIENT -> {
+                    // Dedicated 24-Key RGB Light Strip Controller & Atmosphere Studio
                     RgbRemoteCard(
                         selectedStrip = pomodoroUiState.selectedStrip,
                         brightness = pomodoroUiState.localBrightness,
@@ -296,76 +481,6 @@ fun MainDashboardScreen(
                         onSetSmoothConfig = { speed, breath, palette -> pomodoroViewModel.setSmoothConfig(speed, breath, palette) },
                         onSetStrobeMode = { pomodoroViewModel.setStrobeMode(it) }
                     )
-                }
-
-                DashboardTab.STOPWATCH -> {
-                    if (stopwatchViewModel != null && stopwatchUiState != null) {
-                        val (mainDigits, fractionDigits) = remember(
-                            stopwatchUiState.displayedTimeMs,
-                            stopwatchUiState.precision
-                        ) {
-                            stopwatchViewModel.engine.getFormattedComponents(
-                                stopwatchUiState.displayedTimeMs,
-                                stopwatchUiState.precision
-                            )
-                        }
-
-                        StopwatchCard(
-                            uiState = stopwatchUiState,
-                            mainTimeDigits = mainDigits,
-                            fractionDigits = fractionDigits,
-                            onPrimaryAction = { stopwatchViewModel.onPrimaryAction() },
-                            onPrimaryActionLong = { stopwatchViewModel.onPrimaryActionLong() },
-                            onSecondaryAction = { stopwatchViewModel.onSecondaryAction() },
-                            onSelectSlot = { stopwatchViewModel.selectSlot(it) },
-                            onSetDelay = { stopwatchViewModel.setPreStartDelay(it) },
-                            onToggleLock = { stopwatchViewModel.toggleTouchLock() },
-                            onUnlock = { stopwatchViewModel.unlockTouch() },
-                            onLockTouched = { stopwatchViewModel.onLockTouched() },
-                            onOpenPaceDialog = { stopwatchViewModel.setShowPaceDialog(true) },
-                            onCopyTime = { stopwatchViewModel.copyTimeToClipboard(context) },
-                            onCopyLaps = { stopwatchViewModel.copyLapsToClipboard(context) },
-                            onClearLaps = { stopwatchViewModel.clearLaps() },
-                            onResetAll = { stopwatchViewModel.resetAllSlots() },
-                            onToggleSound = { stopwatchViewModel.toggleSound() },
-                            onToggleVolumeControl = { stopwatchViewModel.toggleVolumeControl() }
-                        )
-
-                        // Pace & Speed Calculator Dialog
-                        if (stopwatchUiState.showPaceDialog) {
-                            PaceCalculatorDialog(
-                                elapsedTimeMs = stopwatchUiState.displayedTimeMs,
-                                timeFormatted = stopwatchViewModel.engine.formatTimeFull(stopwatchUiState.displayedTimeMs),
-                                onCalculate = { dist, unit -> stopwatchViewModel.calculatePaceAndSpeed(dist, unit) },
-                                onCopyPace = { stopwatchViewModel.copyTextToClipboard("Pace", it, context) },
-                                onCopySpeed = { stopwatchViewModel.copyTextToClipboard("Speed", it, context) },
-                                onDismiss = { stopwatchViewModel.setShowPaceDialog(false) }
-                            )
-                        }
-                    }
-                }
-
-                DashboardTab.CLOCK -> {
-                    if (clockViewModel != null && clockUiState != null) {
-                        ClockCard(
-                            uiState = clockUiState,
-                            pomodoroStatus = pomodoroUiState.status,
-                            onCycleRotation = { clockViewModel.cycleRotation() },
-                            onSelectRotation = { clockViewModel.setRotationAngle(it) },
-                            onToggleOrientation = { clockViewModel.toggleOrientation() },
-                            onToggleAutoRotate = { clockViewModel.toggleAutoRotate() },
-                            onCycleTheme = { clockViewModel.cycleTheme() },
-                            onCycleFontFamily = { clockViewModel.cycleFontFamily() },
-                            onCycleFontSize = { clockViewModel.cycleFontSizeScale() },
-                            onToggleTimeFormat = { clockViewModel.toggleTimeFormat() },
-                            onCycleSeconds = { clockViewModel.cycleSecondsDisplay() },
-                            onToggleNightDimming = { clockViewModel.toggleNightDimming() },
-                            onToggleFullScreen = { clockViewModel.setFullScreen(true) },
-                            onOpenSettings = { clockViewModel.setShowSettingsDialog(true) },
-                            onCopyTime = { clockViewModel.copyCurrentTimeToClipboard(context) },
-                            onSwitchToPomodoro = { selectedTab = DashboardTab.POMODORO }
-                        )
-                    }
                 }
             }
 
