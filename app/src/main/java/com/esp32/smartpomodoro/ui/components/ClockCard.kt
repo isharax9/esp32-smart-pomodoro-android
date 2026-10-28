@@ -283,7 +283,7 @@ fun ClockCard(
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 fontWeight = FontWeight.Medium,
                                 fontSize = dateFontSize,
-                                fontFamily = clockFont,
+                                fontFamily = FontFamily.Default,
                                 letterSpacing = 0.5.sp
                             ),
                             color = uiState.effectiveSecondaryColor,
@@ -394,7 +394,7 @@ fun ClockCard(
                                             style = MaterialTheme.typography.labelSmall.copy(
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = smallSecFontSize,
-                                                fontFamily = clockFont,
+                                                fontFamily = if (uiState.fontFamily == ClockFontFamily.SEVEN_SEGMENT) FontFamily.Default else clockFont,
                                                 fontFeatureSettings = "tnum"
                                             ),
                                             color = uiState.effectiveSecondaryColor,
@@ -413,7 +413,7 @@ fun ClockCard(
                                                 style = MaterialTheme.typography.labelSmall.copy(
                                                     fontWeight = FontWeight.Bold,
                                                     fontSize = amPmFontSize,
-                                                    fontFamily = clockFont
+                                                    fontFamily = FontFamily.Default
                                                 ),
                                                 color = uiState.effectiveColor,
                                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
@@ -438,7 +438,7 @@ fun ClockCard(
                                             style = MaterialTheme.typography.labelSmall.copy(
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = amPmFontSize,
-                                                fontFamily = clockFont
+                                                fontFamily = FontFamily.Default
                                             ),
                                             color = uiState.effectiveColor,
                                             modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),

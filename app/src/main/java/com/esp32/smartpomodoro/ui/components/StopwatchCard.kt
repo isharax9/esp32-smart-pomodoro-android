@@ -235,10 +235,10 @@ fun StopwatchCard(
                         Text(
                             text = mainTimeDigits,
                             style = MaterialTheme.typography.displayLarge.copy(
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.Black,
                                 fontSize = 54.sp,
-                                fontFamily = SevenSegmentFontFamily,
-                                letterSpacing = 1.sp
+                                fontFamily = FontFamily.Monospace,
+                                letterSpacing = (-1).sp
                             ),
                             color = when {
                                 isCountingDown -> AccentAmber
@@ -253,8 +253,7 @@ fun StopwatchCard(
                             style = MaterialTheme.typography.headlineMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 28.sp,
-                                fontFamily = SevenSegmentFontFamily,
-                                letterSpacing = 1.sp
+                                fontFamily = FontFamily.Monospace
                             ),
                             color = when {
                                 isCountingDown -> AccentAmber.copy(alpha = 0.7f)

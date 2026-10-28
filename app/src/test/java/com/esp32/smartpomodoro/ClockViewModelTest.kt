@@ -173,6 +173,6 @@ class ClockViewModelTest {
         viewModel.setFontFamily(ClockFontFamily.SEVEN_SEGMENT)
         assertEquals(ClockFontFamily.SEVEN_SEGMENT, viewModel.uiState.value.fontFamily)
         viewModel.cycleFontFamily()
-        assertEquals(ClockFontFamily.MONOSPACE, viewModel.uiState.value.fontFamily)
+        assertEquals(ClockFontFamily.SANS_SERIF, viewModel.uiState.value.fontFamily)
     }
 }

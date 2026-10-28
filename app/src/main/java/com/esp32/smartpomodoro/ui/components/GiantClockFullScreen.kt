@@ -260,7 +260,7 @@ fun GiantClockFullScreen(
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = FontWeight.Bold,
                                             fontSize = amPmFontSize,
-                                            fontFamily = clockFont
+                                            fontFamily = FontFamily.Default
                                         ),
                                         color = uiState.effectiveColor,
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -285,7 +285,7 @@ fun GiantClockFullScreen(
                                         style = MaterialTheme.typography.titleLarge.copy(
                                             fontWeight = FontWeight.Bold,
                                             fontSize = smallSecFontSize,
-                                            fontFamily = clockFont,
+                                            fontFamily = if (uiState.fontFamily == ClockFontFamily.SEVEN_SEGMENT) FontFamily.Default else clockFont,
                                             fontFeatureSettings = "tnum"
                                         ),
                                         color = uiState.effectiveSecondaryColor,
@@ -304,7 +304,7 @@ fun GiantClockFullScreen(
                                             style = MaterialTheme.typography.labelSmall.copy(
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = amPmFontSize,
-                                                fontFamily = clockFont
+                                                fontFamily = FontFamily.Default
                                             ),
                                             color = uiState.effectiveColor,
                                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
@@ -329,7 +329,7 @@ fun GiantClockFullScreen(
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = FontWeight.Bold,
                                             fontSize = amPmFontSize,
-                                            fontFamily = clockFont
+                                            fontFamily = FontFamily.Default
                                         ),
                                         color = uiState.effectiveColor,
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -350,7 +350,7 @@ fun GiantClockFullScreen(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Medium,
                             fontSize = dateFontSize,
-                            fontFamily = clockFont,
+                            fontFamily = FontFamily.Default,
                             letterSpacing = 0.5.sp
                         ),
                         color = uiState.effectiveSecondaryColor,
@@ -458,7 +458,7 @@ fun GiantClockFullScreen(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Medium,
                             fontSize = dateFontSize,
-                            fontFamily = clockFont,
+                            fontFamily = FontFamily.Default,
                             letterSpacing = 0.5.sp
                         ),
                         color = uiState.effectiveSecondaryColor,
@@ -539,7 +539,7 @@ fun GiantClockFullScreen(
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = amPmFontSize,
-                                    fontFamily = clockFont
+                                    fontFamily = FontFamily.Default
                                 ),
                                 color = uiState.effectiveColor,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),

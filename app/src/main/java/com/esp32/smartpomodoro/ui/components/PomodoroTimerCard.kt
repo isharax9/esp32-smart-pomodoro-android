@@ -150,10 +150,11 @@ fun PomodoroTimerCard(
                 Text(
                     text = timeFormatted,
                     style = MaterialTheme.typography.displayLarge.copy(
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Black,
                         fontSize = 46.sp,
-                        fontFamily = SevenSegmentFontFamily,
-                        letterSpacing = 1.sp
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                        fontFeatureSettings = "tnum",
+                        letterSpacing = (-1).sp
                     ),
                     color = TextPrimary,
                     modifier = Modifier.align(Alignment.Center)
