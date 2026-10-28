@@ -67,17 +67,33 @@ class ClockViewModel(
 
     private var tickerJob: Job? = null
     private var isClockVisible: Boolean = false
+    private var isAppVisible: Boolean = true
 
     init {
-        if (autoStartTicker) {
+        if (autoStartTicker && (isClockVisible || engine.isFullScreen)) {
             startTicker()
+        }
+    }
+
+    fun onAppBackgrounded() {
+        isAppVisible = false
+        stopTicker()
+    }
+
+    fun onAppForegrounded() {
+        isAppVisible = true
+        if (isClockVisible || _uiState.value.isFullScreen) {
+            syncSnapshot()
+            if (autoStartTicker) {
+                startTicker()
+            }
         }
     }
 
     fun setClockVisible(visible: Boolean) {
         if (isClockVisible == visible) return
         isClockVisible = visible
-        if (visible || _uiState.value.isFullScreen) {
+        if ((visible || _uiState.value.isFullScreen) && isAppVisible) {
             syncSnapshot()
             if (autoStartTicker) {
                 startTicker()

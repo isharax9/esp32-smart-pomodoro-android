@@ -47,6 +47,9 @@ class StopwatchViewModel(
         .distinctUntilChanged()
 
     private var tickerJob: Job? = null
+    private var isAppVisible: Boolean = true
+    val isStopwatchVisible: Boolean
+        get() = isAppVisible && _uiState.value.activeTab == "STOPWATCH"
 
     init {
         syncUiState()
@@ -79,14 +82,21 @@ class StopwatchViewModel(
                 while (isActive) {
                     val signals = engine.checkSignals()
                     dispatchSignals(signals)
-                    syncUiState()
-                    // Adaptive ticker delay based on precision
-                    val tickInterval = when (engine.precision) {
-                        StopwatchPrecision.MILLISECONDS -> 16L // ~60fps
-                        StopwatchPrecision.HUNDREDTHS -> 25L   // ~40fps
-                        StopwatchPrecision.TENTHS -> 50L       // ~20fps
+
+                    if (isStopwatchVisible) {
+                        syncUiState()
+                        // Adaptive ticker delay based on precision
+                        val tickInterval = when (engine.precision) {
+                            StopwatchPrecision.MILLISECONDS -> 16L // ~60fps
+                            StopwatchPrecision.HUNDREDTHS -> 25L   // ~40fps
+                            StopwatchPrecision.TENTHS -> 50L       // ~20fps
+                        }
+                        delay(tickInterval)
+                    } else {
+                        // When off-screen or in background, throttle to 1000ms.
+                        // Only checks periodic signals with near-zero CPU and eliminates 60Hz GC allocations.
+                        delay(1000L)
                     }
-                    delay(tickInterval)
                 }
             }
         } else if (!anyRunning && tickerJob != null) {
@@ -186,7 +196,32 @@ class StopwatchViewModel(
     }
 
     fun setActiveTab(tab: String) {
+        val wasVisible = isStopwatchVisible
         _uiState.update { it.copy(activeTab = tab) }
+        val nowVisible = isStopwatchVisible
+        if (wasVisible != nowVisible) {
+            if (nowVisible) {
+                syncUiState()
+            }
+            restartTickerWithAppropriateInterval()
+        }
+    }
+
+    fun onAppForegrounded() {
+        isAppVisible = true
+        syncUiState()
+        restartTickerWithAppropriateInterval()
+    }
+
+    fun onAppBackgrounded() {
+        isAppVisible = false
+        restartTickerWithAppropriateInterval()
+    }
+
+    private fun restartTickerWithAppropriateInterval() {
+        tickerJob?.cancel()
+        tickerJob = null
+        ensureTickerRunningIfNeeded()
     }
 
     fun toggleVolumeControl() {

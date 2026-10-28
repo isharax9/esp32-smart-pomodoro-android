@@ -46,6 +46,9 @@ class PomodoroViewModel(
 
     private var pollingJob: Job? = null
     private var lastObservedState: PomodoroState = PomodoroState.IDLE
+    private var isAppVisible: Boolean = true
+    private var activeTab: String = "FOCUS"
+    private var consecutiveFailures: Int = 0
 
     // Standalone Pomodoro Engine state (operates independently of ESP32 and sensors)
     private var localTimerActive: Boolean = false
@@ -123,12 +126,49 @@ class PomodoroViewModel(
     }
 
     fun startPolling() {
+        if (!isAppVisible) return
         pollingJob?.cancel()
         pollingJob = scope.launch {
-            while (isActive) {
+            while (isActive && isAppVisible) {
                 fetchStatus()
-                val delayMs = if (_uiState.value.isConnected) 1200L else 3000L
+                val delayMs = if (_uiState.value.isConnected) {
+                    if (activeTab == "FOCUS") 1500L else 4000L
+                } else {
+                    // Progressive backoff when ESP32 is offline to eliminate battery drain
+                    when {
+                        consecutiveFailures >= 5 -> 15000L
+                        consecutiveFailures >= 3 -> 8000L
+                        else -> 4000L
+                    }
+                }
                 delay(delayMs)
+            }
+        }
+    }
+
+    fun stopPolling() {
+        pollingJob?.cancel()
+        pollingJob = null
+    }
+
+    fun onAppForegrounded() {
+        isAppVisible = true
+        consecutiveFailures = 0
+        startPolling()
+    }
+
+    fun onAppBackgrounded() {
+        isAppVisible = false
+        stopPolling()
+    }
+
+    fun setActiveTab(tab: String) {
+        if (activeTab != tab) {
+            activeTab = tab
+            if (tab == "FOCUS" && isAppVisible) {
+                // Instantly poll when returning to focus tab
+                consecutiveFailures = 0
+                scope.launch { fetchStatus() }
             }
         }
     }
@@ -187,6 +227,7 @@ class PomodoroViewModel(
                     status
                 }
 
+                consecutiveFailures = 0
                 _uiState.update {
                     it.copy(
                         status = effectiveStatus,
@@ -198,6 +239,7 @@ class PomodoroViewModel(
                 }
             },
             onFailure = { error ->
+                consecutiveFailures++
                 _uiState.update {
                     it.copy(
                         isConnected = false,
@@ -211,6 +253,7 @@ class PomodoroViewModel(
 
     fun triggerPomodoroAction(action: String) {
         lastActionTimestamp = System.currentTimeMillis()
+        consecutiveFailures = 0
         when (action.lowercase()) {
             "start" -> {
                 localTimerActive = true
@@ -325,6 +368,7 @@ class PomodoroViewModel(
     fun setHostAddress(address: String) {
         val sanitized = address.trim()
         repository.hostAddress = sanitized
+        consecutiveFailures = 0
         _uiState.update {
             it.copy(
                 hostAddress = sanitized,

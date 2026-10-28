@@ -97,18 +97,21 @@ class MainActivity : ComponentActivity() {
                     )
                 )
 
-                // Keep screen awake if configured in desk clock
-                LaunchedEffect(windowConfig.keepScreenOn) {
-                    if (windowConfig.keepScreenOn) {
+                // Keep screen awake only when Fullscreen Desk Clock is active with keepScreenOn enabled.
+                // On normal dashboard screens, normal system screen timeout applies to conserve battery.
+                LaunchedEffect(windowConfig.keepScreenOn, windowConfig.isFullScreen) {
+                    if (windowConfig.keepScreenOn && windowConfig.isFullScreen) {
                         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                     } else {
                         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                     }
                 }
 
-                // Dynamic orientation listener activation (saves battery when auto-rotate is disabled)
-                LaunchedEffect(windowConfig.isAutoRotate) {
-                    if (windowConfig.isAutoRotate && orientationEventListener?.canDetectOrientation() == true) {
+                // Dynamic orientation listener activation:
+                // Hardware orientation sensor is ONLY powered when in Fullscreen mode with Auto-Rotate active.
+                // In normal dashboard mode, orientation is fixed to portrait, shutting off the sensor.
+                LaunchedEffect(windowConfig.isFullScreen, windowConfig.isAutoRotate) {
+                    if (windowConfig.isFullScreen && windowConfig.isAutoRotate && orientationEventListener?.canDetectOrientation() == true) {
                         orientationEventListener?.enable()
                     } else {
                         orientationEventListener?.disable()
@@ -155,6 +158,25 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        pomodoroViewModel.onAppForegrounded()
+        clockViewModel.onAppForegrounded()
+        stopwatchViewModel.onAppForegrounded()
+        val windowConfig = clockViewModel.uiState.value
+        if (windowConfig.isFullScreen && windowConfig.isAutoRotate && orientationEventListener?.canDetectOrientation() == true) {
+            orientationEventListener?.enable()
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        orientationEventListener?.disable()
+        pomodoroViewModel.onAppBackgrounded()
+        clockViewModel.onAppBackgrounded()
+        stopwatchViewModel.onAppBackgrounded()
     }
 
     @Deprecated("Deprecated in Java")

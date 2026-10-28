@@ -103,4 +103,12 @@ class PomodoroViewModelTest {
         assertTrue(viewModel.uiState.value.status.isPaused)
         assertTrue(viewModel.uiState.value.status.isUserPresent)
     }
+
+    @Test
+    fun testLifecycleAndTabManagement() {
+        viewModel.setActiveTab("TIME")
+        viewModel.onAppBackgrounded()
+        viewModel.onAppForegrounded()
+        viewModel.setActiveTab("FOCUS")
+    }
 }

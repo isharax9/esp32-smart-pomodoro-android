@@ -2,9 +2,22 @@ package com.esp32.smartpomodoro.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.esp32.smartpomodoro.R
+
+/**
+ * Authentic 7-segment digital font family (DSEG7 Classic)
+ * for retro digital clocks, stopwatches, and countdown timers.
+ */
+val SevenSegmentFontFamily: FontFamily by lazy {
+    FontFamily(
+        Font(R.font.dseg7_classic_regular, FontWeight.Normal),
+        Font(R.font.dseg7_classic_bold, FontWeight.Bold)
+    )
+}
 
 val Typography = Typography(
     displayLarge = TextStyle(

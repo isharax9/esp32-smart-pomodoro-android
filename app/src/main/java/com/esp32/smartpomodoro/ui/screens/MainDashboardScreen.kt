@@ -53,7 +53,6 @@ fun MainDashboardScreen(
     stopwatchViewModel: StopwatchViewModel? = null,
     clockViewModel: ClockViewModel? = null
 ) {
-    val pomodoroUiState by pomodoroViewModel.uiState.collectAsState()
     val focusScrollState = rememberScrollState()
     val timeScrollState = rememberScrollState()
     val ambientScrollState = rememberScrollState()
@@ -64,7 +63,8 @@ fun MainDashboardScreen(
 
     // Synchronize active states:
     // 1. Clock ticker only ticks when Clock is actively visible (or in fullscreen)
-    // 2. Hardware volume keys are only intercepted when Stopwatch is actively visible
+    // 2. Hardware volume keys and 60fps ticker are only active when Stopwatch is actively visible
+    // 3. Pomodoro polling interval is relaxed when on other tabs to save network & radio power
     LaunchedEffect(selectedTab, timeSubTab) {
         val isClockActive = (selectedTab == DashboardTab.TIME && timeSubTab == TimeSubTab.CLOCK)
         clockViewModel?.setClockVisible(isClockActive)
@@ -74,6 +74,8 @@ fun MainDashboardScreen(
         } else {
             stopwatchViewModel?.setActiveTab("OTHER")
         }
+
+        pomodoroViewModel.setActiveTab(if (selectedTab == DashboardTab.FOCUS) "FOCUS" else "OTHER")
     }
 
     // Window configuration (only emits when fullscreen, keepScreenOn, etc. change - never on 200ms time ticks)
@@ -90,7 +92,7 @@ fun MainDashboardScreen(
     if (windowConfig?.isFullScreen == true && clockViewModel != null) {
         FullScreenClockHost(
             clockViewModel = clockViewModel,
-            pomodoroStatus = pomodoroUiState.status,
+            pomodoroViewModel = pomodoroViewModel,
             onSwitchToStopwatch = {
                 clockViewModel.setFullScreen(false)
                 selectedTab = DashboardTab.TIME
@@ -118,13 +120,7 @@ fun MainDashboardScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = BackgroundDark,
         topBar = {
-            HeaderBar(
-                isConnected = pomodoroUiState.isConnected,
-                hostAddress = pomodoroUiState.hostAddress,
-                onOpenIpSettings = { pomodoroViewModel.setShowIpDialog(true) },
-                onOpenCalibration = { pomodoroViewModel.setShowCalibrationDialog(true) },
-                onOpenAbout = { pomodoroViewModel.setShowAboutDialog(true) }
-            )
+            HeaderBarHost(pomodoroViewModel = pomodoroViewModel)
         }
     ) { innerPadding ->
         Column(
@@ -271,30 +267,11 @@ fun MainDashboardScreen(
             ) { targetTab ->
                 when (targetTab) {
                     DashboardTab.FOCUS -> {
-                        // Deep Work Sanctuary: Zero visual clutter from lighting controllers
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .verticalScroll(focusScrollState)
-                                .padding(vertical = 6.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            PomodoroTimerCard(
-                                status = pomodoroUiState.status,
-                                onStart = { pomodoroViewModel.triggerPomodoroAction("start") },
-                                onPause = { pomodoroViewModel.triggerPomodoroAction("pause") },
-                                onResume = { pomodoroViewModel.triggerPomodoroAction("resume") },
-                                onSkip = { pomodoroViewModel.triggerPomodoroAction("skip") },
-                                onReset = { pomodoroViewModel.triggerPomodoroAction("reset") }
-                            )
-
-                            TelemetryGrid(
-                                status = pomodoroUiState.status,
-                                onToggleAutoPause = { pomodoroViewModel.toggleAutoPause() }
-                            )
-
-                            Spacer(modifier = Modifier.height(24.dp))
-                        }
+                        // Isolated Focus sanctuary: only recomposes on pomodoro timer ticks
+                        FocusTabHost(
+                            pomodoroViewModel = pomodoroViewModel,
+                            scrollState = focusScrollState
+                        )
                     }
 
                     DashboardTab.TIME -> {
@@ -411,7 +388,7 @@ fun MainDashboardScreen(
                                         if (clockViewModel != null) {
                                             ClockCardHost(
                                                 clockViewModel = clockViewModel,
-                                                pomodoroStatus = pomodoroUiState.status,
+                                                pomodoroViewModel = pomodoroViewModel,
                                                 onSwitchToPomodoro = { selectedTab = DashboardTab.FOCUS }
                                             )
                                         }
@@ -431,65 +408,163 @@ fun MainDashboardScreen(
                     }
 
                     DashboardTab.AMBIENT -> {
-                        // Dedicated 24-Key RGB Light Strip Controller & Atmosphere Studio
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .verticalScroll(ambientScrollState)
-                                .padding(vertical = 6.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            RgbRemoteCard(
-                                selectedStrip = pomodoroUiState.selectedStrip,
-                                brightness = pomodoroUiState.localBrightness,
-                                currentEffect = pomodoroUiState.status.effect,
-                                strobeMode = pomodoroUiState.status.strobeMode,
-                                fadeSpeed = pomodoroUiState.status.fadeSpeed,
-                                fadePalette = pomodoroUiState.status.fadePalette,
-                                smoothSpeed = pomodoroUiState.status.smoothSpeed,
-                                smoothBreath = pomodoroUiState.status.smoothBreath,
-                                smoothPalette = pomodoroUiState.status.smoothPalette,
-                                onSelectStrip = { pomodoroViewModel.selectStrip(it) },
-                                onBrightnessChange = { pomodoroViewModel.setBrightness(it) },
-                                onSendCommand = { pomodoroViewModel.sendColorCommand(it) },
-                                onSetFadeConfig = { speed, palette -> pomodoroViewModel.setFadeConfig(speed, palette) },
-                                onSetSmoothConfig = { speed, breath, palette -> pomodoroViewModel.setSmoothConfig(speed, breath, palette) },
-                                onSetStrobeMode = { pomodoroViewModel.setStrobeMode(it) }
-                            )
-
-                            Spacer(modifier = Modifier.height(24.dp))
-                        }
+                        // Isolated Atmosphere Studio: Dedicated 24-Key RGB Light Strip Controller
+                        AmbientTabHost(
+                            pomodoroViewModel = pomodoroViewModel,
+                            scrollState = ambientScrollState
+                        )
                     }
                 }
             }
         }
 
-        // IP Connection Configuration Modal
-        if (pomodoroUiState.showIpDialog) {
-            IpSettingsDialog(
-                currentHost = pomodoroUiState.hostAddress,
-                onDismiss = { pomodoroViewModel.setShowIpDialog(false) },
-                onSaveHost = { pomodoroViewModel.setHostAddress(it) },
-                onTestConnection = { pomodoroViewModel.testConnection(it) }
-            )
-        }
+        // Isolated Modals Host: Zero recomposition of main layout when dialogs open or close
+        PomodoroModalsHost(pomodoroViewModel = pomodoroViewModel)
+    }
+}
 
-        // Pin Swap Calibration Modal
-        if (pomodoroUiState.showCalibrationDialog) {
-            CalibrationDialog(
-                onDismiss = { pomodoroViewModel.setShowCalibrationDialog(false) },
-                onCalibrate = { strip, action -> pomodoroViewModel.calibrateStrip(strip, action) }
-            )
-        }
+/**
+ * Isolated host for HeaderBar: only recomposes when network connection state changes.
+ * Completely immune to 1-second Pomodoro countdown or clock ticks.
+ */
+@Composable
+private fun HeaderBarHost(pomodoroViewModel: PomodoroViewModel) {
+    val connectionInfo by remember(pomodoroViewModel) {
+        pomodoroViewModel.uiState.map { Pair(it.isConnected, it.hostAddress) }.distinctUntilChanged()
+    }.collectAsState(initial = Pair(false, "192.168.4.1"))
 
-        // About & System Info Modal
-        if (pomodoroUiState.showAboutDialog) {
-            AboutDialog(
-                hostAddress = pomodoroUiState.hostAddress,
-                isConnected = pomodoroUiState.isConnected,
-                onDismiss = { pomodoroViewModel.setShowAboutDialog(false) }
-            )
-        }
+    HeaderBar(
+        isConnected = connectionInfo.first,
+        hostAddress = connectionInfo.second,
+        onOpenIpSettings = { pomodoroViewModel.setShowIpDialog(true) },
+        onOpenCalibration = { pomodoroViewModel.setShowCalibrationDialog(true) },
+        onOpenAbout = { pomodoroViewModel.setShowAboutDialog(true) }
+    )
+}
+
+/**
+ * Isolated host for Focus tab: contains PomodoroTimerCard and TelemetryGrid.
+ * Only recomposes its own contents on Pomodoro countdown updates.
+ */
+@Composable
+private fun FocusTabHost(
+    pomodoroViewModel: PomodoroViewModel,
+    scrollState: androidx.compose.foundation.ScrollState
+) {
+    val uiState by pomodoroViewModel.uiState.collectAsState()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        PomodoroTimerCard(
+            status = uiState.status,
+            onStart = { pomodoroViewModel.triggerPomodoroAction("start") },
+            onPause = { pomodoroViewModel.triggerPomodoroAction("pause") },
+            onResume = { pomodoroViewModel.triggerPomodoroAction("resume") },
+            onSkip = { pomodoroViewModel.triggerPomodoroAction("skip") },
+            onReset = { pomodoroViewModel.triggerPomodoroAction("reset") }
+        )
+
+        TelemetryGrid(
+            status = uiState.status,
+            onToggleAutoPause = { pomodoroViewModel.toggleAutoPause() }
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+    }
+}
+
+/**
+ * Isolated host for Ambient lighting tab: contains 24-key remote card.
+ * Only recomposes when RGB settings or strip targets change.
+ */
+@Composable
+private fun AmbientTabHost(
+    pomodoroViewModel: PomodoroViewModel,
+    scrollState: androidx.compose.foundation.ScrollState
+) {
+    val uiState by pomodoroViewModel.uiState.collectAsState()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        RgbRemoteCard(
+            selectedStrip = uiState.selectedStrip,
+            brightness = uiState.localBrightness,
+            currentEffect = uiState.status.effect,
+            strobeMode = uiState.status.strobeMode,
+            fadeSpeed = uiState.status.fadeSpeed,
+            fadePalette = uiState.status.fadePalette,
+            smoothSpeed = uiState.status.smoothSpeed,
+            smoothBreath = uiState.status.smoothBreath,
+            smoothPalette = uiState.status.smoothPalette,
+            onSelectStrip = { pomodoroViewModel.selectStrip(it) },
+            onBrightnessChange = { pomodoroViewModel.setBrightness(it) },
+            onSendCommand = { pomodoroViewModel.sendColorCommand(it) },
+            onSetFadeConfig = { speed, palette -> pomodoroViewModel.setFadeConfig(speed, palette) },
+            onSetSmoothConfig = { speed, breath, palette -> pomodoroViewModel.setSmoothConfig(speed, breath, palette) },
+            onSetStrobeMode = { pomodoroViewModel.setStrobeMode(it) }
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+    }
+}
+
+/**
+ * Isolated host for dialogs: only opens modal overlays when dialog booleans change.
+ */
+@Composable
+private fun PomodoroModalsHost(pomodoroViewModel: PomodoroViewModel) {
+    val showIpDialog by remember(pomodoroViewModel) {
+        pomodoroViewModel.uiState.map { it.showIpDialog }.distinctUntilChanged()
+    }.collectAsState(initial = false)
+
+    val showCalibrationDialog by remember(pomodoroViewModel) {
+        pomodoroViewModel.uiState.map { it.showCalibrationDialog }.distinctUntilChanged()
+    }.collectAsState(initial = false)
+
+    val showAboutDialog by remember(pomodoroViewModel) {
+        pomodoroViewModel.uiState.map { it.showAboutDialog }.distinctUntilChanged()
+    }.collectAsState(initial = false)
+
+    val hostAddress by remember(pomodoroViewModel) {
+        pomodoroViewModel.uiState.map { it.hostAddress }.distinctUntilChanged()
+    }.collectAsState(initial = "192.168.4.1")
+
+    val isConnected by remember(pomodoroViewModel) {
+        pomodoroViewModel.uiState.map { it.isConnected }.distinctUntilChanged()
+    }.collectAsState(initial = false)
+
+    if (showIpDialog) {
+        IpSettingsDialog(
+            currentHost = hostAddress,
+            onDismiss = { pomodoroViewModel.setShowIpDialog(false) },
+            onSaveHost = { pomodoroViewModel.setHostAddress(it) },
+            onTestConnection = { pomodoroViewModel.testConnection(it) }
+        )
+    }
+
+    if (showCalibrationDialog) {
+        CalibrationDialog(
+            onDismiss = { pomodoroViewModel.setShowCalibrationDialog(false) },
+            onCalibrate = { strip, action -> pomodoroViewModel.calibrateStrip(strip, action) }
+        )
+    }
+
+    if (showAboutDialog) {
+        AboutDialog(
+            hostAddress = hostAddress,
+            isConnected = isConnected,
+            onDismiss = { pomodoroViewModel.setShowAboutDialog(false) }
+        )
     }
 }
 
@@ -500,10 +575,13 @@ fun MainDashboardScreen(
 @Composable
 private fun ClockCardHost(
     clockViewModel: ClockViewModel,
-    pomodoroStatus: PomodoroStatus,
+    pomodoroViewModel: PomodoroViewModel,
     onSwitchToPomodoro: () -> Unit
 ) {
     val clockUiState by clockViewModel.uiState.collectAsState()
+    val pomodoroStatus by remember(pomodoroViewModel) {
+        pomodoroViewModel.uiState.map { it.status }.distinctUntilChanged()
+    }.collectAsState(initial = PomodoroStatus())
     val context = LocalContext.current
 
     ClockCard(
@@ -606,11 +684,14 @@ private fun StopwatchCardHost(
 @Composable
 private fun FullScreenClockHost(
     clockViewModel: ClockViewModel,
-    pomodoroStatus: PomodoroStatus,
+    pomodoroViewModel: PomodoroViewModel,
     onSwitchToStopwatch: () -> Unit,
     onSwitchToPomodoro: () -> Unit
 ) {
     val clockUiState by clockViewModel.uiState.collectAsState()
+    val pomodoroStatus by remember(pomodoroViewModel) {
+        pomodoroViewModel.uiState.map { it.status }.distinctUntilChanged()
+    }.collectAsState(initial = PomodoroStatus())
 
     BackHandler {
         clockViewModel.setFullScreen(false)

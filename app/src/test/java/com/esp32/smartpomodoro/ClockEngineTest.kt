@@ -244,11 +244,12 @@ class ClockEngineTest {
 
     @Test
     fun testCycleFontFamily() {
-        assertEquals(ClockFontFamily.MONOSPACE, engine.fontFamily)
+        assertEquals(ClockFontFamily.SEVEN_SEGMENT, engine.fontFamily)
+        assertEquals(ClockFontFamily.MONOSPACE, engine.cycleFontFamily())
         assertEquals(ClockFontFamily.SANS_SERIF, engine.cycleFontFamily())
         assertEquals(ClockFontFamily.SERIF, engine.cycleFontFamily())
         assertEquals(ClockFontFamily.CURSIVE, engine.cycleFontFamily())
-        assertEquals(ClockFontFamily.MONOSPACE, engine.cycleFontFamily())
+        assertEquals(ClockFontFamily.SEVEN_SEGMENT, engine.cycleFontFamily())
     }
 
     @Test

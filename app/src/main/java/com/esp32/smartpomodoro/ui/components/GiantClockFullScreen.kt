@@ -93,7 +93,11 @@ fun GiantClockFullScreen(
         val screenH = maxHeight
 
         val clockFont = uiState.fontFamily.toComposeFontFamily()
-        val clockLetterSpacing = if (uiState.fontFamily == ClockFontFamily.MONOSPACE) (-1).sp else 0.sp
+        val clockLetterSpacing = when (uiState.fontFamily) {
+            ClockFontFamily.SEVEN_SEGMENT -> 1.sp
+            ClockFontFamily.MONOSPACE -> (-1).sp
+            else -> 0.sp
+        }
 
         // LAYER 1: Subtle Ambient Backlight Glow centered behind digits
         Box(
@@ -119,6 +123,7 @@ fun GiantClockFullScreen(
             // LANDSCAPE MODE: Edge-to-edge widescreen
             // ==========================================
             val digitSlotUnit = when (uiState.fontFamily) {
+                ClockFontFamily.SEVEN_SEGMENT -> 1.15f
                 ClockFontFamily.CURSIVE -> 1.32f
                 ClockFontFamily.MONOSPACE -> 1.25f
                 ClockFontFamily.SERIF -> 1.22f
@@ -402,6 +407,7 @@ fun GiantClockFullScreen(
             // PORTRAIT MODE: Robust, professional layout
             // ==========================================
             val digitSlotUnit = when (uiState.fontFamily) {
+                ClockFontFamily.SEVEN_SEGMENT -> 1.15f
                 ClockFontFamily.CURSIVE -> 1.32f
                 ClockFontFamily.MONOSPACE -> 1.25f
                 ClockFontFamily.SERIF -> 1.22f

@@ -111,6 +111,7 @@ enum class ClockTheme(
  * Typography options for giant digits and clock labels.
  */
 enum class ClockFontFamily(val label: String) {
+    SEVEN_SEGMENT("7-Segment"),
     MONOSPACE("Monospace"),
     SANS_SERIF("Sans-Serif"),
     SERIF("Serif"),
@@ -123,6 +124,7 @@ enum class ClockFontFamily(val label: String) {
     }
 
     fun toComposeFontFamily(): FontFamily = when (this) {
+        SEVEN_SEGMENT -> com.esp32.smartpomodoro.ui.theme.SevenSegmentFontFamily
         MONOSPACE -> FontFamily.Monospace
         SANS_SERIF -> FontFamily.SansSerif
         SERIF -> FontFamily.Serif
@@ -185,7 +187,7 @@ data class ClockUiState(
     val isAutoRotate: Boolean = true,
     val rotationAngle: ClockRotationAngle = ClockRotationAngle.ROTATION_0,
     val theme: ClockTheme = ClockTheme.AMBER_NIGHT,
-    val fontFamily: ClockFontFamily = ClockFontFamily.MONOSPACE,
+    val fontFamily: ClockFontFamily = ClockFontFamily.SEVEN_SEGMENT,
     val fontSizeScale: Float = 1.0f,
     val nightDimming: Boolean = false,
     val brightnessFactor: Float = 1.0f, // 0.1f to 1.0f

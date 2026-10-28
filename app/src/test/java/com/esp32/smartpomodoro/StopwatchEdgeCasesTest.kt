@@ -3,6 +3,7 @@ package com.esp32.smartpomodoro
 import com.esp32.smartpomodoro.data.model.StopwatchControlScheme
 import com.esp32.smartpomodoro.data.model.StopwatchPrecision
 import com.esp32.smartpomodoro.data.stopwatch.StopwatchEngine
+import com.esp32.smartpomodoro.ui.viewmodel.StopwatchViewModel
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
@@ -163,5 +164,23 @@ class StopwatchEdgeCasesTest {
 
         // Infinitesimal distance that would overflow Long
         assertNull(engine.calculatePaceAndSpeed(1e-18, "km", validTime))
+    }
+
+    @Test
+    fun testStopwatchViewModelVisibilityAndLifecycle() {
+        val vm = StopwatchViewModel(engine = engine)
+        assertFalse(vm.isStopwatchVisible)
+
+        vm.setActiveTab("STOPWATCH")
+        assertTrue(vm.isStopwatchVisible)
+
+        vm.onAppBackgrounded()
+        assertFalse(vm.isStopwatchVisible)
+
+        vm.onAppForegrounded()
+        assertTrue(vm.isStopwatchVisible)
+
+        vm.setActiveTab("OTHER")
+        assertFalse(vm.isStopwatchVisible)
     }
 }

@@ -165,4 +165,14 @@ class ClockViewModelTest {
         viewModel.setKeepScreenOn(true)
         assertTrue(viewModel.uiState.value.keepScreenOn)
     }
+
+    @Test
+    fun testClockLifecycleAndFontSelection() {
+        viewModel.onAppBackgrounded()
+        viewModel.onAppForegrounded()
+        viewModel.setFontFamily(ClockFontFamily.SEVEN_SEGMENT)
+        assertEquals(ClockFontFamily.SEVEN_SEGMENT, viewModel.uiState.value.fontFamily)
+        viewModel.cycleFontFamily()
+        assertEquals(ClockFontFamily.MONOSPACE, viewModel.uiState.value.fontFamily)
+    }
 }

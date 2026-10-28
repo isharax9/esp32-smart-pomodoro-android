@@ -37,7 +37,7 @@ class ClockEngine(
     var isAutoRotate: Boolean = true
     var rotationAngle: ClockRotationAngle = ClockRotationAngle.ROTATION_0
     var theme: ClockTheme = ClockTheme.AMBER_NIGHT
-    var fontFamily: ClockFontFamily = ClockFontFamily.MONOSPACE
+    var fontFamily: ClockFontFamily = ClockFontFamily.SEVEN_SEGMENT
     var fontSizeScale: Float = 1.0f
     var nightDimming: Boolean = false
     var brightnessFactor: Float = 1.0f

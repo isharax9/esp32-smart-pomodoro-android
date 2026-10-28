@@ -209,6 +209,7 @@ fun ClockCard(
 
                 // Responsively determine slot units required to fit card width without any clipping
                 val digitSlotUnit = when (uiState.fontFamily) {
+                    ClockFontFamily.SEVEN_SEGMENT -> 1.15f
                     ClockFontFamily.CURSIVE -> 1.30f
                     ClockFontFamily.MONOSPACE -> 1.25f
                     ClockFontFamily.SERIF -> 1.22f
@@ -253,7 +254,11 @@ fun ClockCard(
                 val dateFontSize = (boxW.value * 0.038f * scale.coerceIn(0.85f, 1.2f)).coerceIn(11f, 15f).sp
 
                 val clockFont = uiState.fontFamily.toComposeFontFamily()
-                val clockLetterSpacing = if (uiState.fontFamily == ClockFontFamily.MONOSPACE) (-1).sp else 0.sp
+                val clockLetterSpacing = when (uiState.fontFamily) {
+                    ClockFontFamily.SEVEN_SEGMENT -> 1.sp
+                    ClockFontFamily.MONOSPACE -> (-1).sp
+                    else -> 0.sp
+                }
 
                 val digitSlotWidth = (digitFontSize.value * digitSlotUnit).dp
                 val colonSlotWidth = (digitFontSize.value * colonSlotUnit).dp
