@@ -17,8 +17,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -239,10 +241,18 @@ fun ClockCard(
                     }
                 }
 
+                val fontHeightMultiplier = when (uiState.fontFamily) {
+                    ClockFontFamily.CURSIVE -> 1.25f
+                    ClockFontFamily.SERIF -> 1.18f
+                    ClockFontFamily.MONOSPACE -> 1.12f
+                    ClockFontFamily.SANS_SERIF -> 1.12f
+                    ClockFontFamily.SEVEN_SEGMENT -> 1.06f
+                }
+
                 val safeW = (boxW.value - 20f).coerceAtLeast(80f)
                 val maxFontFromW = ((safeW - fixedHorizontalPaddings) / totalSlotUnits).coerceAtLeast(16f)
-                val availableCardH = (boxH.value - (if (uiState.showDate) 32f else 0f) - 16f).coerceAtLeast(60f)
-                val maxFontFromH = availableCardH * 0.65f
+                val availableCardH = (boxH.value - (if (uiState.showDate) 36f else 0f) - 16f).coerceAtLeast(60f)
+                val maxFontFromH = (availableCardH / fontHeightMultiplier) * 0.65f
 
                 val maxFittingFontSize = minOf(maxFontFromW, maxFontFromH)
                 val baseResponsiveFont = maxFittingFontSize * 0.76f
@@ -269,9 +279,17 @@ fun ClockCard(
                 val digitTextStyle = MaterialTheme.typography.displayLarge.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = digitFontSize,
+                    lineHeight = digitFontSize,
                     fontFamily = clockFont,
                     letterSpacing = clockLetterSpacing,
-                    fontFeatureSettings = "tnum"
+                    fontFeatureSettings = "tnum",
+                    platformStyle = PlatformTextStyle(
+                        includeFontPadding = false
+                    ),
+                    lineHeightStyle = LineHeightStyle(
+                        alignment = LineHeightStyle.Alignment.Center,
+                        trim = LineHeightStyle.Trim.Both
+                    )
                 )
 
                 Column(

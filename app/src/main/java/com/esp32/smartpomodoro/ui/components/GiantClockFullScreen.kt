@@ -24,8 +24,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -139,28 +141,37 @@ fun GiantClockFullScreen(
                 // Reference design from simple stopwatch/clock: giant digits centered,
                 // small seconds & am/pm in bottom-right corner
                 // =========================================================================
+                val fontHeightMultiplier = when (uiState.fontFamily) {
+                    ClockFontFamily.CURSIVE -> 1.25f
+                    ClockFontFamily.SERIF -> 1.18f
+                    ClockFontFamily.MONOSPACE -> 1.12f
+                    ClockFontFamily.SANS_SERIF -> 1.12f
+                    ClockFontFamily.SEVEN_SEGMENT -> 1.06f
+                }
+
                 val (singleDigitUnit, colonUnit) = when (uiState.fontFamily) {
-                    ClockFontFamily.SEVEN_SEGMENT -> Pair(0.85f, 0.28f)
-                    ClockFontFamily.CURSIVE -> Pair(0.68f, 0.32f)
-                    ClockFontFamily.MONOSPACE -> Pair(0.64f, 0.32f)
-                    ClockFontFamily.SERIF -> Pair(0.63f, 0.30f)
-                    ClockFontFamily.SANS_SERIF -> Pair(0.61f, 0.30f)
+                    ClockFontFamily.SEVEN_SEGMENT -> Pair(0.82f, 0.28f)
+                    ClockFontFamily.CURSIVE -> Pair(0.68f, 0.30f)
+                    ClockFontFamily.MONOSPACE -> Pair(0.64f, 0.30f)
+                    ClockFontFamily.SERIF -> Pair(0.63f, 0.28f)
+                    ClockFontFamily.SANS_SERIF -> Pair(0.61f, 0.28f)
                 }
 
                 val hourDigits = snapshot.displayHours.length
+                val calcHourDigits = maxOf(hourDigits, 2)
                 val minuteDigits = 2
                 val secondDigits = if (uiState.secondsDisplay == ClockSecondsDisplay.BIG) 2 else 0
                 val colonsCount = if (uiState.secondsDisplay == ClockSecondsDisplay.BIG) 2 else 1
 
-                val totalSlotUnits = ((hourDigits + minuteDigits + secondDigits) * singleDigitUnit) + (colonsCount * colonUnit)
+                val totalSlotUnits = ((calcHourDigits + minuteDigits + secondDigits) * singleDigitUnit) + (colonsCount * colonUnit)
 
                 val safeW = (screenW.value - 24f).coerceAtLeast(100f)
                 val maxFontFromWidth = (safeW / totalSlotUnits).coerceAtLeast(20f)
 
-                val extraHeight = (if (uiState.showDate) 32f else 0f) +
-                        (if (pomodoroStatus != null && pomodoroStatus.parsedState != PomodoroState.IDLE) 44f else 0f) + 16f
+                val extraHeight = (if (uiState.showDate) 46f else 8f) +
+                        (if (pomodoroStatus != null && pomodoroStatus.parsedState != PomodoroState.IDLE) 46f else 0f) + 20f
                 val availableClockH = (screenH.value - extraHeight).coerceAtLeast(60f)
-                val maxFontFromHeight = availableClockH * 0.90f
+                val maxFontFromHeight = (availableClockH / fontHeightMultiplier)
 
                 val maxFittingFontSize = minOf(maxFontFromWidth, maxFontFromHeight)
                 val computedFontSize = maxFittingFontSize.sp
@@ -170,20 +181,28 @@ fun GiantClockFullScreen(
                 val minutesSlotWidth = singleDigitWidth * 2
                 val secondsSlotWidth = singleDigitWidth * 2
                 val colonSlotWidth = (computedFontSize.value * colonUnit).dp
-                val dateFontSize = (screenH.value * 0.055f).coerceIn(11f, 18f).sp
+                val dateFontSize = (screenH.value * 0.042f).coerceIn(12f, 16f).sp
 
                 val digitTextStyle = MaterialTheme.typography.displayLarge.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = computedFontSize,
+                    lineHeight = computedFontSize,
                     fontFamily = clockFont,
                     letterSpacing = clockLetterSpacing,
-                    fontFeatureSettings = "tnum"
+                    fontFeatureSettings = "tnum",
+                    platformStyle = PlatformTextStyle(
+                        includeFontPadding = false
+                    ),
+                    lineHeightStyle = LineHeightStyle(
+                        alignment = LineHeightStyle.Alignment.Center,
+                        trim = LineHeightStyle.Trim.Both
+                    )
                 )
 
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -240,7 +259,7 @@ fun GiantClockFullScreen(
                     }
 
                     if (uiState.showDate && snapshot.dateFormatted.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = "${snapshot.dayOfWeek}, ${snapshot.dateFormatted}",
                             style = MaterialTheme.typography.titleMedium.copy(
@@ -250,7 +269,9 @@ fun GiantClockFullScreen(
                                 letterSpacing = 0.5.sp
                             ),
                             color = uiState.effectiveSecondaryColor,
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
 
@@ -375,22 +396,30 @@ fun GiantClockFullScreen(
                     }
                 }
 
+                val fontHeightMultiplier = when (uiState.fontFamily) {
+                    ClockFontFamily.CURSIVE -> 1.25f
+                    ClockFontFamily.SERIF -> 1.18f
+                    ClockFontFamily.MONOSPACE -> 1.12f
+                    ClockFontFamily.SANS_SERIF -> 1.12f
+                    ClockFontFamily.SEVEN_SEGMENT -> 1.06f
+                }
+
                 val safeW = (screenW.value - 36f).coerceAtLeast(100f)
                 val maxFontFromWidth = ((safeW - fixedHorizontalPaddings) / totalSlotUnits).coerceAtLeast(20f)
 
-                val extraHeight = (if (uiState.showDate) 32f else 0f) +
-                        (if (pomodoroStatus != null && pomodoroStatus.parsedState != PomodoroState.IDLE) 42f else 0f) + 24f
+                val extraHeight = (if (uiState.showDate) 46f else 12f) +
+                        (if (pomodoroStatus != null && pomodoroStatus.parsedState != PomodoroState.IDLE) 44f else 0f) + 24f
                 val availableClockH = (screenH.value - extraHeight).coerceAtLeast(70f)
-                val maxFontFromHeight = availableClockH * 0.82f
+                val maxFontFromHeight = (availableClockH / fontHeightMultiplier) * 0.90f
 
                 val maxFittingFontSize = minOf(maxFontFromWidth, maxFontFromHeight)
-                val baseStandardFontSize = maxFittingFontSize * 0.76f
+                val baseStandardFontSize = maxFittingFontSize * 0.74f
                 val computedFontSize = (baseStandardFontSize * uiState.fontSizeScale)
                     .coerceIn(22f, maxFittingFontSize).sp
 
                 val smallSecFontSize = (computedFontSize.value * 0.38f).coerceIn(12f, 44f).sp
                 val amPmFontSize = (computedFontSize.value * 0.24f).coerceIn(11f, 32f).sp
-                val dateFontSize = (screenH.value * 0.055f * uiState.fontSizeScale.coerceIn(0.85f, 1.15f)).coerceIn(11f, 18f).sp
+                val dateFontSize = (screenH.value * 0.042f * uiState.fontSizeScale.coerceIn(0.85f, 1.15f)).coerceIn(11f, 16f).sp
 
                 val digitSlotWidth = (computedFontSize.value * digitSlotUnit).dp
                 val colonSlotWidth = (computedFontSize.value * colonSlotUnit).dp
@@ -398,9 +427,17 @@ fun GiantClockFullScreen(
                 val digitTextStyle = MaterialTheme.typography.displayLarge.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = computedFontSize,
+                    lineHeight = computedFontSize,
                     fontFamily = clockFont,
                     letterSpacing = clockLetterSpacing,
-                    fontFeatureSettings = "tnum"
+                    fontFeatureSettings = "tnum",
+                    platformStyle = PlatformTextStyle(
+                        includeFontPadding = false
+                    ),
+                    lineHeightStyle = LineHeightStyle(
+                        alignment = LineHeightStyle.Alignment.Center,
+                        trim = LineHeightStyle.Trim.Both
+                    )
                 )
 
                 Column(
@@ -556,7 +593,7 @@ fun GiantClockFullScreen(
                     }
 
                     if (uiState.showDate && snapshot.dateFormatted.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = "${snapshot.dayOfWeek}, ${snapshot.dateFormatted}",
                             style = MaterialTheme.typography.titleMedium.copy(
@@ -566,7 +603,9 @@ fun GiantClockFullScreen(
                                 letterSpacing = 0.5.sp
                             ),
                             color = uiState.effectiveSecondaryColor,
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
 
@@ -627,14 +666,22 @@ fun GiantClockFullScreen(
             }
             val colonSlotUnit = 0.35f
 
+            val fontHeightMultiplier = when (uiState.fontFamily) {
+                ClockFontFamily.CURSIVE -> 1.25f
+                ClockFontFamily.SERIF -> 1.18f
+                ClockFontFamily.MONOSPACE -> 1.12f
+                ClockFontFamily.SANS_SERIF -> 1.12f
+                ClockFontFamily.SEVEN_SEGMENT -> 1.06f
+            }
+
             val safeW = (screenW.value - 32f).coerceAtLeast(100f)
             val totalSlotUnits = (digitSlotUnit * 2) + colonSlotUnit
             val maxFontFromWidth = (safeW / totalSlotUnits).coerceAtLeast(24f)
 
-            val extraHeight = (if (uiState.showDate) 40f else 0f) +
+            val extraHeight = (if (uiState.showDate) 44f else 0f) +
                     (if (pomodoroStatus != null && pomodoroStatus.parsedState != PomodoroState.IDLE) 54f else 0f) + 120f
             val availableClockH = (screenH.value - extraHeight).coerceAtLeast(120f)
-            val maxFontFromHeight = availableClockH * 0.45f
+            val maxFontFromHeight = (availableClockH / fontHeightMultiplier) * 0.45f
 
             val maxFittingFontSize = minOf(maxFontFromWidth, maxFontFromHeight)
             val baseStandardFontSize = maxFittingFontSize * 0.78f
@@ -643,7 +690,7 @@ fun GiantClockFullScreen(
 
             val secFontSize = (computedFontSize.value * 0.32f).coerceIn(13f, 32f).sp
             val amPmFontSize = (computedFontSize.value * 0.26f).coerceIn(12f, 28f).sp
-            val dateFontSize = (screenW.value * 0.042f * uiState.fontSizeScale.coerceIn(0.85f, 1.15f)).coerceIn(12f, 18f).sp
+            val dateFontSize = (screenW.value * 0.040f * uiState.fontSizeScale.coerceIn(0.85f, 1.15f)).coerceIn(12f, 16f).sp
 
             val digitSlotWidth = (computedFontSize.value * digitSlotUnit).dp
             val colonSlotWidth = (computedFontSize.value * colonSlotUnit).dp
@@ -651,9 +698,17 @@ fun GiantClockFullScreen(
             val digitTextStyle = MaterialTheme.typography.displayLarge.copy(
                 fontWeight = FontWeight.Bold,
                 fontSize = computedFontSize,
+                lineHeight = computedFontSize,
                 fontFamily = clockFont,
                 letterSpacing = clockLetterSpacing,
-                fontFeatureSettings = "tnum"
+                fontFeatureSettings = "tnum",
+                platformStyle = PlatformTextStyle(
+                    includeFontPadding = false
+                ),
+                lineHeightStyle = LineHeightStyle(
+                    alignment = LineHeightStyle.Alignment.Center,
+                    trim = LineHeightStyle.Trim.Both
+                )
             )
 
             Column(
