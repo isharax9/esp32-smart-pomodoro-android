@@ -171,21 +171,28 @@ fun ClockSettingsDialog(
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     ClockFontFamily.entries.forEach { font ->
                         val isSelected = uiState.fontFamily == font
+                        val shortLabel = when (font) {
+                            ClockFontFamily.SEVEN_SEGMENT -> "7-Seg"
+                            ClockFontFamily.MONOSPACE -> "Mono"
+                            ClockFontFamily.SANS_SERIF -> "Sans"
+                            ClockFontFamily.SERIF -> "Serif"
+                            ClockFontFamily.CURSIVE -> "Cursive"
+                        }
                         Surface(
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(10.dp),
                             color = if (isSelected) uiState.theme.primaryColor else SurfaceDark,
                             modifier = Modifier
                                 .weight(1f)
-                                .clip(RoundedCornerShape(12.dp))
+                                .clip(RoundedCornerShape(10.dp))
                                 .clickable { onFontFamilyChange(font) }
                         ) {
                             Column(
                                 modifier = Modifier
-                                    .padding(vertical = 8.dp, horizontal = 4.dp)
+                                    .padding(vertical = 7.dp, horizontal = 2.dp)
                                     .fillMaxWidth(),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
@@ -193,19 +200,22 @@ fun ClockSettingsDialog(
                                     text = "12:00",
                                     fontFamily = font.toComposeFontFamily(),
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
+                                    fontSize = 10.sp,
+                                    maxLines = 1,
+                                    softWrap = false,
                                     color = if (isSelected) BackgroundDark else uiState.theme.primaryColor
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
-                                    text = font.label,
+                                    text = shortLabel,
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                     ),
                                     color = if (isSelected) BackgroundDark else TextSecondary,
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                     maxLines = 1,
-                                    fontSize = 10.sp
+                                    softWrap = false,
+                                    fontSize = 9.sp
                                 )
                             }
                         }

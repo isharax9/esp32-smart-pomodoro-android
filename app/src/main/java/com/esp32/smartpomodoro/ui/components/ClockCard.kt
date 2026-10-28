@@ -208,34 +208,34 @@ fun ClockCard(
                 )
 
                 // Responsively determine slot units required to fit card width without any clipping
-                val digitSlotUnit = when (uiState.fontFamily) {
-                    ClockFontFamily.SEVEN_SEGMENT -> 1.15f
-                    ClockFontFamily.CURSIVE -> 1.30f
-                    ClockFontFamily.MONOSPACE -> 1.25f
-                    ClockFontFamily.SERIF -> 1.22f
-                    ClockFontFamily.SANS_SERIF -> 1.18f
+                val (singleDigitUnit, colonSlotUnit) = when (uiState.fontFamily) {
+                    ClockFontFamily.SEVEN_SEGMENT -> Pair(0.85f, 0.28f)
+                    ClockFontFamily.CURSIVE -> Pair(0.68f, 0.32f)
+                    ClockFontFamily.MONOSPACE -> Pair(0.64f, 0.32f)
+                    ClockFontFamily.SERIF -> Pair(0.63f, 0.30f)
+                    ClockFontFamily.SANS_SERIF -> Pair(0.61f, 0.30f)
                 }
-                val colonSlotUnit = 0.28f
                 val hasAmPm = snapshot.amPm.isNotEmpty()
+                val hourDigits = snapshot.displayHours.length
 
                 val totalSlotUnits: Float
                 val fixedHorizontalPaddings: Float
 
                 when (uiState.secondsDisplay) {
                     ClockSecondsDisplay.BIG -> {
-                        val amPmUnit = if (hasAmPm) 0.45f else 0f
-                        totalSlotUnits = (digitSlotUnit * 3) + (colonSlotUnit * 2) + amPmUnit
-                        fixedHorizontalPaddings = if (hasAmPm) 20f else 6f
+                        val amPmUnit = if (hasAmPm) 0.90f else 0f
+                        totalSlotUnits = ((hourDigits + 4) * singleDigitUnit) + (colonSlotUnit * 2) + amPmUnit
+                        fixedHorizontalPaddings = if (hasAmPm) 28f else 12f
                     }
                     ClockSecondsDisplay.SMALL -> {
-                        val secColUnit = if (hasAmPm || uiState.secondsDisplay != ClockSecondsDisplay.NONE) 0.55f else 0f
-                        totalSlotUnits = (digitSlotUnit * 2) + colonSlotUnit + secColUnit
-                        fixedHorizontalPaddings = 16f
+                        val secColUnit = if (hasAmPm || uiState.secondsDisplay != ClockSecondsDisplay.NONE) 0.85f else 0f
+                        totalSlotUnits = ((hourDigits + 2) * singleDigitUnit) + colonSlotUnit + secColUnit
+                        fixedHorizontalPaddings = 24f
                     }
                     ClockSecondsDisplay.NONE -> {
-                        val amPmUnit = if (hasAmPm) 0.45f else 0f
-                        totalSlotUnits = (digitSlotUnit * 2) + colonSlotUnit + amPmUnit
-                        fixedHorizontalPaddings = if (hasAmPm) 16f else 0f
+                        val amPmUnit = if (hasAmPm) 0.80f else 0f
+                        totalSlotUnits = ((hourDigits + 2) * singleDigitUnit) + colonSlotUnit + amPmUnit
+                        fixedHorizontalPaddings = if (hasAmPm) 24f else 8f
                     }
                 }
 
@@ -255,16 +255,19 @@ fun ClockCard(
 
                 val clockFont = uiState.fontFamily.toComposeFontFamily()
                 val clockLetterSpacing = when (uiState.fontFamily) {
-                    ClockFontFamily.SEVEN_SEGMENT -> 1.sp
+                    ClockFontFamily.SEVEN_SEGMENT -> 0.sp
                     ClockFontFamily.MONOSPACE -> (-1).sp
                     else -> 0.sp
                 }
 
-                val digitSlotWidth = (digitFontSize.value * digitSlotUnit).dp
+                val singleDigitWidth = (digitFontSize.value * singleDigitUnit).dp
+                val hoursSlotWidth = singleDigitWidth * hourDigits
+                val minutesSlotWidth = singleDigitWidth * 2
+                val secondsSlotWidth = singleDigitWidth * 2
                 val colonSlotWidth = (digitFontSize.value * colonSlotUnit).dp
 
                 val digitTextStyle = MaterialTheme.typography.displayLarge.copy(
-                    fontWeight = FontWeight.Black,
+                    fontWeight = FontWeight.Bold,
                     fontSize = digitFontSize,
                     fontFamily = clockFont,
                     letterSpacing = clockLetterSpacing,
@@ -299,11 +302,11 @@ fun ClockCard(
                     ) {
                         // Hours Slot
                         Box(
-                            modifier = Modifier.width(digitSlotWidth),
+                            modifier = Modifier.width(hoursSlotWidth),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = snapshot.hours,
+                                text = snapshot.displayHours,
                                 style = digitTextStyle,
                                 color = uiState.effectiveColor,
                                 maxLines = 1,
@@ -322,7 +325,7 @@ fun ClockCard(
 
                         // Minutes Slot
                         Box(
-                            modifier = Modifier.width(digitSlotWidth),
+                            modifier = Modifier.width(minutesSlotWidth),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -345,7 +348,7 @@ fun ClockCard(
                                     blinkingColon = uiState.blinkingColon
                                 )
                                 Box(
-                                    modifier = Modifier.width(digitSlotWidth),
+                                    modifier = Modifier.width(secondsSlotWidth),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
@@ -361,7 +364,7 @@ fun ClockCard(
                                         shape = RoundedCornerShape(5.dp),
                                         color = uiState.effectiveColor.copy(alpha = 0.16f),
                                         modifier = Modifier
-                                            .padding(start = 5.dp)
+                                            .padding(start = 10.dp)
                                             .align(Alignment.CenterVertically)
                                     ) {
                                         Text(
@@ -369,7 +372,7 @@ fun ClockCard(
                                             style = MaterialTheme.typography.labelSmall.copy(
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = amPmFontSize,
-                                                fontFamily = clockFont
+                                                fontFamily = FontFamily.Default
                                             ),
                                             color = uiState.effectiveColor,
                                             modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
@@ -381,7 +384,7 @@ fun ClockCard(
                             }
                             ClockSecondsDisplay.SMALL -> {
                                 Column(
-                                    modifier = Modifier.padding(start = 5.dp),
+                                    modifier = Modifier.padding(start = 10.dp),
                                     verticalArrangement = Arrangement.spacedBy(3.dp),
                                     horizontalAlignment = Alignment.Start
                                 ) {
@@ -430,7 +433,7 @@ fun ClockCard(
                                         shape = RoundedCornerShape(5.dp),
                                         color = uiState.effectiveColor.copy(alpha = 0.16f),
                                         modifier = Modifier
-                                            .padding(start = 5.dp)
+                                            .padding(start = 10.dp)
                                             .align(Alignment.CenterVertically)
                                     ) {
                                         Text(

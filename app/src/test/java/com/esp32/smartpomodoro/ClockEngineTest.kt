@@ -80,6 +80,7 @@ class ClockEngineTest {
 
         val snapshot = engine.createSnapshot()
         assertEquals("01", snapshot.hours)
+        assertEquals("1", snapshot.displayHours)
         assertEquals("45", snapshot.minutes)
         assertEquals("30", snapshot.seconds)
         assertEquals("PM", snapshot.amPm)
@@ -88,6 +89,7 @@ class ClockEngineTest {
         timeProvider.setCalendarTime(2026, Calendar.OCTOBER, 26, 23, 59, 59)
         val snapshotNight = engine.createSnapshot()
         assertEquals("11", snapshotNight.hours)
+        assertEquals("11", snapshotNight.displayHours)
         assertEquals("59", snapshotNight.minutes)
         assertEquals("59", snapshotNight.seconds)
         assertEquals("PM", snapshotNight.amPm)
@@ -101,6 +103,7 @@ class ClockEngineTest {
         timeProvider.setCalendarTime(2026, Calendar.OCTOBER, 26, 0, 0, 0)
         var snapshot = engine.createSnapshot()
         assertEquals("00", snapshot.hours)
+        assertEquals("00", snapshot.displayHours)
         assertEquals("00", snapshot.minutes)
         assertEquals("", snapshot.amPm)
         assertEquals("00:00:00", snapshot.fullTimeFormatted)
@@ -109,6 +112,7 @@ class ClockEngineTest {
         timeProvider.setCalendarTime(2026, Calendar.OCTOBER, 26, 13, 15, 20)
         snapshot = engine.createSnapshot()
         assertEquals("13", snapshot.hours)
+        assertEquals("13", snapshot.displayHours)
         assertEquals("15", snapshot.minutes)
         assertEquals("20", snapshot.seconds)
         assertEquals("", snapshot.amPm)
@@ -276,12 +280,14 @@ class ClockEngineTest {
         assertEquals(1.0f, ClockFontSizeScale.STANDARD.scaleFactor, 0.001f)
         assertEquals(1.18f, ClockFontSizeScale.LARGE.scaleFactor, 0.001f)
         assertEquals(1.36f, ClockFontSizeScale.GIANT.scaleFactor, 0.001f)
+        assertEquals(1.50f, ClockFontSizeScale.ULTRA_GIANT.scaleFactor, 0.001f)
 
         assertEquals(ClockFontSizeScale.COMPACT, ClockFontSizeScale.TINY.next())
         assertEquals(ClockFontSizeScale.STANDARD, ClockFontSizeScale.COMPACT.next())
         assertEquals(ClockFontSizeScale.LARGE, ClockFontSizeScale.STANDARD.next())
         assertEquals(ClockFontSizeScale.GIANT, ClockFontSizeScale.LARGE.next())
-        assertEquals(ClockFontSizeScale.TINY, ClockFontSizeScale.GIANT.next())
+        assertEquals(ClockFontSizeScale.ULTRA_GIANT, ClockFontSizeScale.GIANT.next())
+        assertEquals(ClockFontSizeScale.TINY, ClockFontSizeScale.ULTRA_GIANT.next())
     }
 
     @Test
@@ -289,6 +295,7 @@ class ClockEngineTest {
         engine.fontSizeScale = 1.0f
         assertEquals(1.18f, engine.cycleFontSizeScale(), 0.001f)
         assertEquals(1.36f, engine.cycleFontSizeScale(), 0.001f)
+        assertEquals(1.50f, engine.cycleFontSizeScale(), 0.001f)
         assertEquals(0.70f, engine.cycleFontSizeScale(), 0.001f)
         assertEquals(0.85f, engine.cycleFontSizeScale(), 0.001f)
         assertEquals(1.0f, engine.cycleFontSizeScale(), 0.001f)

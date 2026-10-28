@@ -53,7 +53,7 @@ class ClockViewModel(
     val uiState: StateFlow<ClockUiState> = _uiState.asStateFlow()
 
     // Decoupled window & orientation flow: only emits when window attributes change.
-    // Never emits on 200ms time ticks, preventing MainActivity from recomposing when seconds tick.
+    // Never emits on time ticks, preventing MainActivity from recomposing when seconds tick.
     val windowConfig: kotlinx.coroutines.flow.Flow<ClockWindowConfig> = _uiState
         .map { state ->
             ClockWindowConfig(
@@ -70,9 +70,55 @@ class ClockViewModel(
     private var isAppVisible: Boolean = true
 
     init {
+        loadPreferences()
+        syncSnapshot()
         if (autoStartTicker && (isClockVisible || engine.isFullScreen)) {
             startTicker()
         }
+    }
+
+    private fun loadPreferences() {
+        val ctx = appContext ?: return
+        try {
+            val prefs = ctx.getSharedPreferences("clock_preferences", Context.MODE_PRIVATE)
+            val fontName = prefs.getString("font_family", ClockFontFamily.SEVEN_SEGMENT.name)
+            val themeName = prefs.getString("theme", ClockTheme.GLACIER_OLED.name)
+            val formatName = prefs.getString("time_format", ClockTimeFormat.TWELVE_HOUR.name)
+            val secondsName = prefs.getString("seconds_display", ClockSecondsDisplay.SMALL.name)
+            val scale = prefs.getFloat("font_size_scale", 1.0f)
+            val showDate = prefs.getBoolean("show_date", false)
+            val blinking = prefs.getBoolean("blinking_colon", true)
+            val night = prefs.getBoolean("night_dimming", false)
+            val keepOn = prefs.getBoolean("keep_screen_on", true)
+
+            engine.fontFamily = ClockFontFamily.entries.find { it.name == fontName } ?: ClockFontFamily.SEVEN_SEGMENT
+            engine.theme = ClockTheme.entries.find { it.name == themeName } ?: ClockTheme.GLACIER_OLED
+            engine.timeFormat = ClockTimeFormat.entries.find { it.name == formatName } ?: ClockTimeFormat.TWELVE_HOUR
+            engine.secondsDisplay = ClockSecondsDisplay.entries.find { it.name == secondsName } ?: ClockSecondsDisplay.SMALL
+            engine.fontSizeScale = scale
+            engine.showDate = showDate
+            engine.blinkingColon = blinking
+            engine.nightDimming = night
+            engine.keepScreenOn = keepOn
+        } catch (_: Exception) {}
+    }
+
+    private fun savePreferences() {
+        val ctx = appContext ?: return
+        try {
+            ctx.getSharedPreferences("clock_preferences", Context.MODE_PRIVATE)
+                .edit()
+                .putString("font_family", engine.fontFamily.name)
+                .putString("theme", engine.theme.name)
+                .putString("time_format", engine.timeFormat.name)
+                .putString("seconds_display", engine.secondsDisplay.name)
+                .putFloat("font_size_scale", engine.fontSizeScale)
+                .putBoolean("show_date", engine.showDate)
+                .putBoolean("blinking_colon", engine.blinkingColon)
+                .putBoolean("night_dimming", engine.nightDimming)
+                .putBoolean("keep_screen_on", engine.keepScreenOn)
+                .apply()
+        } catch (_: Exception) {}
     }
 
     fun onAppBackgrounded() {
@@ -108,8 +154,9 @@ class ClockViewModel(
         tickerJob = scope.launch {
             while (isActive) {
                 syncSnapshot()
-                // 200ms tick interval ensures accurate 500ms colon blink and crisp seconds update
-                delay(200L)
+                // Adaptive tick interval saves CPU and battery
+                val interval = if (engine.blinkingColon) 250L else 1000L
+                delay(interval)
             }
         }
     }
@@ -174,89 +221,94 @@ class ClockViewModel(
         syncSnapshot()
     }
 
+    private fun updateStateAndSave() {
+        syncSnapshot()
+        savePreferences()
+    }
+
     fun cycleTheme() {
         engine.cycleTheme()
-        syncSnapshot()
+        updateStateAndSave()
     }
 
     fun setTheme(theme: ClockTheme) {
         engine.theme = theme
-        syncSnapshot()
+        updateStateAndSave()
     }
 
     fun cycleFontFamily() {
         engine.cycleFontFamily()
-        syncSnapshot()
+        updateStateAndSave()
     }
 
     fun setFontFamily(fontFamily: ClockFontFamily) {
         engine.fontFamily = fontFamily
-        syncSnapshot()
+        updateStateAndSave()
     }
 
     fun setFontSizeScale(scale: Float) {
         engine.setFontSizeScaleFactor(scale)
-        syncSnapshot()
+        updateStateAndSave()
     }
 
     fun setFontSizeScalePreset(preset: ClockFontSizeScale) {
         engine.setFontSizeScaleFactor(preset.scaleFactor)
-        syncSnapshot()
+        updateStateAndSave()
     }
 
     fun cycleFontSizeScale() {
         engine.cycleFontSizeScale()
-        syncSnapshot()
+        updateStateAndSave()
     }
 
     fun cycleSecondsDisplay() {
         engine.cycleSecondsDisplay()
-        syncSnapshot()
+        updateStateAndSave()
     }
 
     fun setSecondsDisplay(display: ClockSecondsDisplay) {
         engine.secondsDisplay = display
-        syncSnapshot()
+        updateStateAndSave()
     }
 
     fun toggleTimeFormat() {
         engine.toggleTimeFormat()
-        syncSnapshot()
+        updateStateAndSave()
     }
 
     fun setTimeFormat(format: ClockTimeFormat) {
         engine.timeFormat = format
-        syncSnapshot()
+        updateStateAndSave()
     }
 
     fun toggleShowDate() {
         engine.showDate = !engine.showDate
-        syncSnapshot()
+        updateStateAndSave()
     }
 
     fun setShowDate(show: Boolean) {
         engine.showDate = show
-        syncSnapshot()
+        updateStateAndSave()
     }
 
     fun toggleBlinkingColon() {
         engine.blinkingColon = !engine.blinkingColon
-        syncSnapshot()
+        updateStateAndSave()
     }
 
     fun setBlinkingColon(blink: Boolean) {
         engine.blinkingColon = blink
-        syncSnapshot()
+        updateStateAndSave()
     }
 
     fun toggleNightDimming() {
         engine.nightDimming = !engine.nightDimming
-        syncSnapshot()
+        updateStateAndSave()
     }
 
     fun setNightDimming(enabled: Boolean) {
         engine.nightDimming = enabled
-        syncSnapshot()
+        updateStateAndSave()
     }
 
     fun setBrightnessFactor(factor: Float) {
@@ -266,12 +318,12 @@ class ClockViewModel(
 
     fun toggleKeepScreenOn() {
         engine.keepScreenOn = !engine.keepScreenOn
-        syncSnapshot()
+        updateStateAndSave()
     }
 
     fun setKeepScreenOn(keep: Boolean) {
         engine.keepScreenOn = keep
-        syncSnapshot()
+        updateStateAndSave()
     }
 
     fun setFullScreen(fullScreen: Boolean) {

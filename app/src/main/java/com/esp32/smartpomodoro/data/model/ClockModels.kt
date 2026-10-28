@@ -140,7 +140,8 @@ enum class ClockFontSizeScale(val label: String, val scaleFactor: Float) {
     COMPACT("Compact", 0.85f),
     STANDARD("Standard", 1.0f),
     LARGE("Large", 1.18f),
-    GIANT("Giant", 1.36f);
+    GIANT("Giant", 1.36f),
+    ULTRA_GIANT("1.50 Scale", 1.50f);
 
     fun next(): ClockFontSizeScale {
         val entries = entries
@@ -162,7 +163,18 @@ data class ClockTimeSnapshot(
     val dayOfWeek: String = "",
     val fullTimeFormatted: String = "",
     val timestampMs: Long = 0L
-)
+) {
+    /**
+     * Formatted hours for display: in 12H mode, single-digit hours omit leading zero (e.g. "2" instead of "02").
+     * In 24H mode, preserves leading zero (e.g. "02").
+     */
+    val displayHours: String
+        get() = if (amPm.isNotEmpty() && hours.startsWith("0") && hours.length > 1) {
+            hours.substring(1)
+        } else {
+            hours
+        }
+}
 
 /**
  * Window & orientation configuration for Giant Clock.

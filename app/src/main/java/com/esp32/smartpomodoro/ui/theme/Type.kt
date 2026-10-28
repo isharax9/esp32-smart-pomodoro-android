@@ -15,7 +15,12 @@ import com.esp32.smartpomodoro.R
 val SevenSegmentFontFamily: FontFamily by lazy {
     FontFamily(
         Font(R.font.dseg7_classic_regular, FontWeight.Normal),
-        Font(R.font.dseg7_classic_bold, FontWeight.Bold)
+        Font(R.font.dseg7_classic_bold, FontWeight.Bold),
+        Font(R.font.dseg7_classic_bold, FontWeight.SemiBold),
+        Font(R.font.dseg7_classic_bold, FontWeight.ExtraBold),
+        Font(R.font.dseg7_classic_bold, FontWeight.Black),
+        Font(R.font.dseg7_classic_regular, FontWeight.Medium),
+        Font(R.font.dseg7_classic_regular, FontWeight.Light)
     )
 }
 

@@ -97,10 +97,10 @@ class MainActivity : ComponentActivity() {
                     )
                 )
 
-                // Keep screen awake only when Fullscreen Desk Clock is active with keepScreenOn enabled.
-                // On normal dashboard screens, normal system screen timeout applies to conserve battery.
-                LaunchedEffect(windowConfig.keepScreenOn, windowConfig.isFullScreen) {
-                    if (windowConfig.keepScreenOn && windowConfig.isFullScreen) {
+                // Keep screen awake whenever keepScreenOn is enabled in clock settings.
+                // Ensures uninterrupted display when using device as an always-on desk clock or dashboard.
+                LaunchedEffect(windowConfig.keepScreenOn) {
+                    if (windowConfig.keepScreenOn) {
                         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                     } else {
                         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -134,9 +134,10 @@ class MainActivity : ComponentActivity() {
                 // When in Fullscreen Desk Clock mode, rotate the entire physical display window
                 // so the user gets 100% true full screen (never clamped or clipped with black bars).
                 // When on Dashboard, keep portrait for normal vertical scrolling.
+                // Guard with comparison to prevent redundant window manager relayout and display freezes.
                 LaunchedEffect(windowConfig.isFullScreen, windowConfig.isAutoRotate, windowConfig.rotationAngle) {
-                    if (windowConfig.isFullScreen) {
-                        requestedOrientation = if (windowConfig.isAutoRotate) {
+                    val targetOrientation = if (windowConfig.isFullScreen) {
+                        if (windowConfig.isAutoRotate) {
                             ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
                         } else {
                             when (windowConfig.rotationAngle) {
@@ -147,7 +148,10 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     } else {
-                        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                        ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                    }
+                    if (requestedOrientation != targetOrientation) {
+                        requestedOrientation = targetOrientation
                     }
                 }
 

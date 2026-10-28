@@ -253,19 +253,15 @@ fun MainDashboardScreen(
                 }
             }
 
-            // Tab Content with silky-smooth crossfade and independent scrolling per tab
-            AnimatedContent(
-                targetState = selectedTab,
-                transitionSpec = {
-                    fadeIn(animationSpec = tween(180)) togetherWith
-                    fadeOut(animationSpec = tween(120))
-                },
+            // Zero-overhead instantaneous Tab Content:
+            // Direct conditional layout eliminates concurrent tree measurement, removing tab switching lag
+            // and keeping CPU & battery footprint ultra-light for always-on desk operation.
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
-                label = "dashboardTabTransition"
-            ) { targetTab ->
-                when (targetTab) {
+                    .weight(1f)
+            ) {
+                when (selectedTab) {
                     DashboardTab.FOCUS -> {
                         // Isolated Focus sanctuary: only recomposes on pomodoro timer ticks
                         FocusTabHost(
@@ -374,31 +370,22 @@ fun MainDashboardScreen(
                                 }
                             }
 
-                            // Sub-tab Content with smooth transition
-                            AnimatedContent(
-                                targetState = timeSubTab,
-                                transitionSpec = {
-                                    fadeIn(animationSpec = tween(150)) togetherWith
-                                    fadeOut(animationSpec = tween(90))
-                                },
-                                label = "timeSubTabTransition"
-                            ) { subTab ->
-                                when (subTab) {
-                                    TimeSubTab.CLOCK -> {
-                                        if (clockViewModel != null) {
-                                            ClockCardHost(
-                                                clockViewModel = clockViewModel,
-                                                pomodoroViewModel = pomodoroViewModel,
-                                                onSwitchToPomodoro = { selectedTab = DashboardTab.FOCUS }
-                                            )
-                                        }
+                            // Sub-tab Content: direct zero-latency switching
+                            when (timeSubTab) {
+                                TimeSubTab.CLOCK -> {
+                                    if (clockViewModel != null) {
+                                        ClockCardHost(
+                                            clockViewModel = clockViewModel,
+                                            pomodoroViewModel = pomodoroViewModel,
+                                            onSwitchToPomodoro = { selectedTab = DashboardTab.FOCUS }
+                                        )
                                     }
-                                    TimeSubTab.STOPWATCH -> {
-                                        if (stopwatchViewModel != null) {
-                                            StopwatchCardHost(
-                                                stopwatchViewModel = stopwatchViewModel
-                                            )
-                                        }
+                                }
+                                TimeSubTab.STOPWATCH -> {
+                                    if (stopwatchViewModel != null) {
+                                        StopwatchCardHost(
+                                            stopwatchViewModel = stopwatchViewModel
+                                        )
                                     }
                                 }
                             }
