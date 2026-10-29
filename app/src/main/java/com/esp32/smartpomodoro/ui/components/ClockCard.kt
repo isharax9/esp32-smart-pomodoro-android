@@ -41,6 +41,7 @@ fun ClockCard(
     onCycleFontSize: () -> Unit = {},
     onToggleTimeFormat: () -> Unit,
     onCycleSeconds: () -> Unit,
+    onToggleShowDate: () -> Unit = {},
     onToggleNightDimming: () -> Unit,
     onToggleFullScreen: () -> Unit,
     onOpenSettings: () -> Unit,

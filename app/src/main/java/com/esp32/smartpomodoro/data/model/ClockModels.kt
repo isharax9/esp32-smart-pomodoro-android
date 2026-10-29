@@ -133,15 +133,14 @@ enum class ClockFontFamily(val label: String) {
 }
 
 /**
- * Text and numbers size preset options for giant desk clock.
+ * Text and numbers size preset options for giant desk clock (0% to 100%).
  */
 enum class ClockFontSizeScale(val label: String, val scaleFactor: Float) {
-    TINY("Tiny", 0.70f),
-    COMPACT("Compact", 0.85f),
-    STANDARD("Standard", 1.0f),
-    LARGE("Large", 1.18f),
-    GIANT("Giant", 1.36f),
-    ULTRA_GIANT("1.50 Scale", 1.50f);
+    COMPACT("60%", 0.60f),
+    MEDIUM("75%", 0.75f),
+    LARGE("85%", 0.85f),
+    EXTRA_LARGE("95%", 0.95f),
+    FULL("100%", 1.00f);
 
     fun next(): ClockFontSizeScale {
         val entries = entries

@@ -276,7 +276,7 @@ fun ClockSettingsDialog(
                 Slider(
                     value = uiState.fontSizeScale,
                     onValueChange = onFontSizeChange,
-                    valueRange = 0.65f..1.50f,
+                    valueRange = 0.50f..1.00f,
                     colors = SliderDefaults.colors(
                         thumbColor = uiState.theme.primaryColor,
                         activeTrackColor = uiState.theme.primaryColor,

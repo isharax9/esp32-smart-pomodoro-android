@@ -160,14 +160,14 @@ class ClockEngine(
     }
 
     fun setFontSizeScaleFactor(scale: Float): Float {
-        fontSizeScale = scale.coerceIn(0.60f, 1.60f)
+        fontSizeScale = scale.coerceIn(0.50f, 1.00f)
         return fontSizeScale
     }
 
     fun cycleFontSizeScale(): Float {
         val presets = ClockFontSizeScale.entries
         val currentFactor = fontSizeScale
-        val currentIndex = presets.indexOfFirst { kotlin.math.abs(it.scaleFactor - currentFactor) < 0.08f }
+        val currentIndex = presets.indices.minByOrNull { kotlin.math.abs(presets[it].scaleFactor - currentFactor) } ?: -1
         val nextIndex = if (currentIndex == -1 || currentIndex >= presets.size - 1) 0 else currentIndex + 1
         fontSizeScale = presets[nextIndex].scaleFactor
         return fontSizeScale
