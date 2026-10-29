@@ -122,10 +122,16 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(windowConfig.isFullScreen) {
                     val insetsController = WindowCompat.getInsetsController(window, window.decorView)
                     if (windowConfig.isFullScreen) {
+                        WindowCompat.setDecorFitsSystemWindows(window, false)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                            window.attributes.layoutInDisplayCutoutMode =
+                                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                        }
                         insetsController.systemBarsBehavior =
                             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                         insetsController.hide(WindowInsetsCompat.Type.systemBars())
                     } else {
+                        WindowCompat.setDecorFitsSystemWindows(window, true)
                         insetsController.show(WindowInsetsCompat.Type.systemBars())
                     }
                 }

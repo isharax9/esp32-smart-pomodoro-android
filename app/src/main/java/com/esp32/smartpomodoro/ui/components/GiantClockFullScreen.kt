@@ -142,22 +142,12 @@ fun GiantClockFullScreen(
                 // Reference design from simple stopwatch/clock: giant digits centered,
                 // small seconds & am/pm in bottom-right corner
                 // =========================================================================
-                val fontScaleX = if (uiState.fontFamily == ClockFontFamily.SEVEN_SEGMENT) 0.65f else 1.0f
-
-                val (effectiveDigitUnit, colonUnit) = when (uiState.fontFamily) {
-                    ClockFontFamily.SEVEN_SEGMENT -> Pair(0.53f, 0.20f)
-                    ClockFontFamily.SANS_SERIF -> Pair(0.56f, 0.22f)
-                    ClockFontFamily.SERIF -> Pair(0.58f, 0.22f)
-                    ClockFontFamily.MONOSPACE -> Pair(0.60f, 0.24f)
-                    ClockFontFamily.CURSIVE -> Pair(0.64f, 0.24f)
-                }
-
-                val fontHeightMultiplier = when (uiState.fontFamily) {
-                    ClockFontFamily.CURSIVE -> 1.15f
-                    ClockFontFamily.SERIF -> 1.08f
-                    ClockFontFamily.MONOSPACE -> 1.05f
-                    ClockFontFamily.SANS_SERIF -> 1.04f
-                    ClockFontFamily.SEVEN_SEGMENT -> 1.02f
+                val (digitUnit, colonUnit, fontHeightMultiplier) = when (uiState.fontFamily) {
+                    ClockFontFamily.SEVEN_SEGMENT -> Triple(0.816f, 0.200f, 1.00f)
+                    ClockFontFamily.SANS_SERIF -> Triple(0.574f, 0.282f, 1.08f)
+                    ClockFontFamily.SERIF -> Triple(0.559f, 0.304f, 1.10f)
+                    ClockFontFamily.MONOSPACE -> Triple(0.600f, 0.600f, 1.08f)
+                    ClockFontFamily.CURSIVE -> Triple(0.620f, 0.251f, 1.18f)
                 }
 
                 val hourDigits = snapshot.displayHours.length
@@ -165,20 +155,20 @@ fun GiantClockFullScreen(
                 val secondDigits = if (uiState.secondsDisplay == ClockSecondsDisplay.BIG) 2 else 0
                 val colonsCount = if (uiState.secondsDisplay == ClockSecondsDisplay.BIG) 2 else 1
 
-                val totalSlotUnits = ((hourDigits + minuteDigits + secondDigits) * effectiveDigitUnit) + (colonsCount * colonUnit)
+                val totalSlotUnits = ((hourDigits + minuteDigits + secondDigits) * digitUnit) + (colonsCount * colonUnit)
 
-                val safeW = (screenW.value - 32f).coerceAtLeast(100f)
+                val safeW = (screenW.value - 24f).coerceAtLeast(100f)
                 val maxFontFromWidth = (safeW / totalSlotUnits).coerceAtLeast(20f)
 
-                val extraHeight = (if (uiState.showDate) 28f else 8f) +
-                        (if (pomodoroStatus != null && pomodoroStatus.parsedState != PomodoroState.IDLE) 46f else 0f) + 16f
-                val availableClockH = (screenH.value - extraHeight).coerceAtLeast(60f)
-                val maxFontFromHeight = (availableClockH / fontHeightMultiplier)
+                val bottomBarHeight = (if (uiState.showDate) 26f else 6f) +
+                        (if (pomodoroStatus != null && pomodoroStatus.parsedState != PomodoroState.IDLE) 44f else 0f) + 10f
+                val availableUpperH = (screenH.value - bottomBarHeight - 8f).coerceAtLeast(60f)
+                val maxFontFromHeight = (availableUpperH / fontHeightMultiplier)
 
                 val maxFittingFontSize = minOf(maxFontFromWidth, maxFontFromHeight)
                 val computedFontSize = maxFittingFontSize.sp
 
-                val singleDigitWidth = (computedFontSize.value * effectiveDigitUnit).dp
+                val singleDigitWidth = (computedFontSize.value * digitUnit).dp
                 val hoursSlotWidth = singleDigitWidth * hourDigits
                 val minutesSlotWidth = singleDigitWidth * 2
                 val secondsSlotWidth = singleDigitWidth * 2
@@ -195,7 +185,6 @@ fun GiantClockFullScreen(
                     fontFamily = clockFont,
                     letterSpacing = clockLetterSpacing,
                     fontFeatureSettings = "tnum",
-                    textGeometricTransform = TextGeometricTransform(scaleX = fontScaleX),
                     platformStyle = PlatformTextStyle(
                         includeFontPadding = false
                     ),
@@ -205,26 +194,33 @@ fun GiantClockFullScreen(
                     )
                 )
 
+                val fontTopOffset = when (uiState.fontFamily) {
+                    ClockFontFamily.SEVEN_SEGMENT -> 0.dp
+                    ClockFontFamily.CURSIVE -> (-(computedFontSize.value * 0.10f)).dp
+                    else -> (-(computedFontSize.value * 0.14f)).dp
+                }
+
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(
-                            top = 8.dp,
-                            bottom = 8.dp,
-                            start = 14.dp,
-                            end = 14.dp
+                            top = 6.dp,
+                            bottom = 4.dp,
+                            start = 12.dp,
+                            end = 12.dp
                         ),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // TOP & CENTER: Giant Clock Digits filling the entire screen height
+                    // UPPER SPACE: Clock numbers filling the upper space from the top
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth(),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.TopCenter
                     ) {
                         Row(
+                            modifier = Modifier.offset(y = fontTopOffset),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
@@ -329,7 +325,7 @@ fun GiantClockFullScreen(
                                 start = 8.dp,
                                 end = 8.dp,
                                 top = 2.dp,
-                                bottom = if (controlsVisible) 60.dp else 2.dp
+                                bottom = if (controlsVisible) 60.dp else 4.dp
                             )
                     ) {
                         // Date (centered under digits)
