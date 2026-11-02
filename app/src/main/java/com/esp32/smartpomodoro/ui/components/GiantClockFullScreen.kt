@@ -114,25 +114,7 @@ fun GiantClockFullScreen(
             else -> 0.sp
         }
 
-        // LAYER 1: Subtle Ambient Backlight Glow centered behind digits
-        Box(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .size(
-                    width = (screenW * 0.75f).coerceAtLeast(200.dp),
-                    height = (screenH * 0.50f).coerceAtLeast(150.dp)
-                )
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            uiState.effectiveColor.copy(alpha = if (uiState.nightDimming) 0.04f else 0.12f),
-                            Color.Transparent
-                        )
-                    )
-                )
-        )
-
-        // LAYER 2: Main Clock Display
+        // Main Clock Display
         if (isLandscape) {
             // =========================================================================
             // GIANT FULLSCREEN DESK CLOCK (100% DISPLAY-FILLED DIGITS)
@@ -140,11 +122,11 @@ fun GiantClockFullScreen(
             // with corner seconds & AM/PM aligned to bottom-right (matching reference).
             // =========================================================================
             val (digitUnit, colonUnit, fontHeightMultiplier, glyphSideMargin) = when (uiState.fontFamily) {
-                ClockFontFamily.SEVEN_SEGMENT -> listOf(0.816f, 0.180f, 1.00f, 0.099f)
-                ClockFontFamily.SANS_SERIF -> listOf(0.574f, 0.282f, 1.08f, 0.040f)
-                ClockFontFamily.SERIF -> listOf(0.559f, 0.304f, 1.10f, 0.040f)
-                ClockFontFamily.MONOSPACE -> listOf(0.600f, 0.250f, 1.08f, 0.050f)
-                ClockFontFamily.CURSIVE -> listOf(0.620f, 0.251f, 1.18f, 0.040f)
+                ClockFontFamily.SEVEN_SEGMENT -> listOf(0.816f, 0.180f, 1.000f, 0.099f)
+                ClockFontFamily.SANS_SERIF -> listOf(0.562f, 0.220f, 0.730f, 0.040f)
+                ClockFontFamily.SERIF -> listOf(0.559f, 0.240f, 0.734f, 0.040f)
+                ClockFontFamily.MONOSPACE -> listOf(0.600f, 0.240f, 0.735f, 0.050f)
+                ClockFontFamily.CURSIVE -> listOf(0.540f, 0.220f, 0.812f, 0.040f)
             }
 
             val hourDigits = snapshot.displayHours.length
@@ -155,7 +137,7 @@ fun GiantClockFullScreen(
 
             // In DSEG7, digit '1' uses only the right column (LSB = 593 out of 1000).
             // We calculate exact visual ink width and optical center offset so the clock is
-            // perfectly centered with maximum edge-to-edge display fill.
+            // perfectly centered with maximum edge-to-edge display fill across all fonts.
             val is7Segment = uiState.fontFamily == ClockFontFamily.SEVEN_SEGMENT
             val firstLsb = if (is7Segment && snapshot.displayHours.startsWith("1")) 0.593f else glyphSideMargin
             val lastMargin = glyphSideMargin
@@ -224,7 +206,8 @@ fun GiantClockFullScreen(
                         fontSize = computedFontSize.value,
                         color = uiState.effectiveColor,
                         colonVisible = snapshot.colonVisible,
-                        blinkingColon = uiState.blinkingColon
+                        blinkingColon = uiState.blinkingColon,
+                        is7Segment = is7Segment
                     )
 
                     Text(
@@ -241,7 +224,8 @@ fun GiantClockFullScreen(
                             fontSize = computedFontSize.value,
                             color = uiState.effectiveColor,
                             colonVisible = snapshot.colonVisible,
-                            blinkingColon = uiState.blinkingColon
+                            blinkingColon = uiState.blinkingColon,
+                            is7Segment = is7Segment
                         )
                         Text(
                             text = snapshot.seconds,
@@ -376,21 +360,12 @@ fun GiantClockFullScreen(
             // ==========================================
             // PORTRAIT MODE: Robust, professional layout
             // ==========================================
-            val digitSlotUnit = when (uiState.fontFamily) {
-                ClockFontFamily.SEVEN_SEGMENT -> 1.70f
-                ClockFontFamily.CURSIVE -> 1.35f
-                ClockFontFamily.MONOSPACE -> 1.28f
-                ClockFontFamily.SERIF -> 1.25f
-                ClockFontFamily.SANS_SERIF -> 1.22f
-            }
-            val colonSlotUnit = 0.35f
-
-            val fontHeightMultiplier = when (uiState.fontFamily) {
-                ClockFontFamily.CURSIVE -> 1.25f
-                ClockFontFamily.SERIF -> 1.18f
-                ClockFontFamily.MONOSPACE -> 1.12f
-                ClockFontFamily.SANS_SERIF -> 1.12f
-                ClockFontFamily.SEVEN_SEGMENT -> 1.06f
+            val (digitSlotUnit, fontHeightMultiplier, colonSlotUnit) = when (uiState.fontFamily) {
+                ClockFontFamily.SEVEN_SEGMENT -> Triple(1.632f, 1.000f, 0.180f)
+                ClockFontFamily.SANS_SERIF -> Triple(1.124f, 0.730f, 0.220f)
+                ClockFontFamily.SERIF -> Triple(1.118f, 0.734f, 0.240f)
+                ClockFontFamily.MONOSPACE -> Triple(1.200f, 0.735f, 0.240f)
+                ClockFontFamily.CURSIVE -> Triple(1.080f, 0.812f, 0.220f)
             }
 
             val safeW = (screenW.value - 32f).coerceAtLeast(100f)
@@ -472,7 +447,8 @@ fun GiantClockFullScreen(
                         fontSize = computedFontSize.value,
                         color = uiState.effectiveColor,
                         colonVisible = snapshot.colonVisible,
-                        blinkingColon = uiState.blinkingColon
+                        blinkingColon = uiState.blinkingColon,
+                        is7Segment = uiState.fontFamily == ClockFontFamily.SEVEN_SEGMENT
                     )
 
                     Box(modifier = Modifier.width(digitSlotWidth), contentAlignment = Alignment.Center) {
@@ -992,10 +968,11 @@ fun CenteredClockColon(
     fontSize: Float,
     color: Color,
     colonVisible: Boolean,
-    blinkingColon: Boolean
+    blinkingColon: Boolean,
+    is7Segment: Boolean = true
 ) {
-    val dotSize = (fontSize * 0.10f).coerceIn(4f, 48f).dp
-    val dotSpacing = (fontSize * 0.28f).coerceIn(8f, 96f).dp
+    val dotSize = (fontSize * (if (is7Segment) 0.10f else 0.08f)).coerceIn(4f, 48f).dp
+    val dotSpacing = (fontSize * (if (is7Segment) 0.28f else 0.20f)).coerceIn(8f, 96f).dp
     val colonAlpha = if (colonVisible) 1.0f else if (blinkingColon) 0.12f else 1.0f
 
     Box(
