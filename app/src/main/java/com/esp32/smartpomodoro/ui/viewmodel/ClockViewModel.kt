@@ -82,7 +82,7 @@ class ClockViewModel(
         try {
             val prefs = ctx.getSharedPreferences("clock_preferences", Context.MODE_PRIVATE)
             val fontName = prefs.getString("font_family", ClockFontFamily.SEVEN_SEGMENT.name)
-            val themeName = prefs.getString("theme", ClockTheme.GLACIER_OLED.name)
+            val themeName = prefs.getString("theme", ClockTheme.AMBER_NIGHT.name)
             val formatName = prefs.getString("time_format", ClockTimeFormat.TWELVE_HOUR.name)
             val secondsName = prefs.getString("seconds_display", ClockSecondsDisplay.SMALL.name)
             val scale = prefs.getFloat("font_size_scale", 1.0f)
@@ -92,7 +92,7 @@ class ClockViewModel(
             val keepOn = prefs.getBoolean("keep_screen_on", true)
 
             engine.fontFamily = ClockFontFamily.entries.find { it.name == fontName } ?: ClockFontFamily.SEVEN_SEGMENT
-            engine.theme = ClockTheme.entries.find { it.name == themeName } ?: ClockTheme.GLACIER_OLED
+            engine.theme = ClockTheme.entries.find { it.name == themeName } ?: ClockTheme.AMBER_NIGHT
             engine.timeFormat = ClockTimeFormat.entries.find { it.name == formatName } ?: ClockTimeFormat.TWELVE_HOUR
             engine.secondsDisplay = ClockSecondsDisplay.entries.find { it.name == secondsName } ?: ClockSecondsDisplay.SMALL
             engine.fontSizeScale = scale
